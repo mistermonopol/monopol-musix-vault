@@ -11,10 +11,12 @@ import type { AuthRepository, TokenService } from './application/auth-ports.js';
 import type { AuthOperations } from './application/auth-service.js';
 import type { DatabaseHealth } from './application/database-health.js';
 import { GetHealth } from './application/get-health.js';
+import type { MusicScannerOperations } from './application/music-scanner.js';
 import type { AppConfig } from './infrastructure/config.js';
 import { SystemClock } from './infrastructure/system-clock.js';
 import { registerAuthRoutes } from './interfaces/http/auth-routes.js';
 import { registerHealthRoutes } from './interfaces/http/health-routes.js';
+import { registerLibraryRoutes } from './interfaces/http/library-routes.js';
 
 export interface BuildAppOptions {
   readonly authRepository: AuthRepository;
@@ -22,6 +24,7 @@ export interface BuildAppOptions {
   readonly config: AppConfig;
   readonly databaseHealth: DatabaseHealth;
   readonly logger?: FastifyServerOptions['logger'];
+  readonly scanner: MusicScannerOperations;
   readonly tokenService: TokenService;
 }
 
@@ -81,6 +84,10 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   await app.register(registerAuthRoutes, {
     authRepository: options.authRepository,
     authService: options.authService,
+    tokenService: options.tokenService,
+  });
+  await app.register(registerLibraryRoutes, {
+    scanner: options.scanner,
     tokenService: options.tokenService,
   });
 

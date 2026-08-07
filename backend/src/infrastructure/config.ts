@@ -12,6 +12,7 @@ const environmentSchema = z.object({
   DB_SSL: z.stringbool().default(false),
   DB_USER: z.string().min(1).default('musix_vault'),
   HOST: z.string().min(1).default('0.0.0.0'),
+  LIBRARY_PATH: z.string().min(1).default('/music'),
   LOG_LEVEL: z
     .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
     .default('info'),
@@ -39,6 +40,7 @@ export interface AppConfig {
   readonly auth: AuthConfig;
   readonly database: DatabaseConfig;
   readonly HOST: string;
+  readonly LIBRARY_PATH: string;
   readonly LOG_LEVEL: z.infer<typeof environmentSchema>['LOG_LEVEL'];
   readonly NODE_ENV: z.infer<typeof environmentSchema>['NODE_ENV'];
   readonly PORT: number;
@@ -67,6 +69,7 @@ export function loadConfig(environment: NodeJS.ProcessEnv): AppConfig {
       user: result.data.DB_USER,
     },
     HOST: result.data.HOST,
+    LIBRARY_PATH: result.data.LIBRARY_PATH,
     LOG_LEVEL: result.data.LOG_LEVEL,
     NODE_ENV: result.data.NODE_ENV,
     PORT: result.data.PORT,

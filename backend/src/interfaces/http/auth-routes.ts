@@ -17,7 +17,7 @@ export interface AuthRoutesDependencies {
   readonly tokenService: TokenService;
 }
 
-async function authenticate(
+export async function authenticate(
   request: FastifyRequest,
   tokenService: TokenService,
 ): Promise<string> {

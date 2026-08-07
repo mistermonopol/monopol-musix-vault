@@ -20,6 +20,7 @@ const config: AppConfig = {
     user: 'test',
   },
   HOST: '127.0.0.1',
+  LIBRARY_PATH: '/music',
   LOG_LEVEL: 'silent',
   NODE_ENV: 'test',
   PORT: 3000,
@@ -27,7 +28,7 @@ const config: AppConfig = {
 
 const authDependencies: Pick<
   BuildAppOptions,
-  'authRepository' | 'authService' | 'tokenService'
+  'authRepository' | 'authService' | 'scanner' | 'tokenService'
 > = {
   authRepository: {
     bootstrapAdmin: async () => null,
@@ -48,6 +49,20 @@ const authDependencies: Pick<
     refresh: async () => {
       throw new Error('Not used');
     },
+  },
+  scanner: {
+    scan: async () => ({
+      discovered: 0,
+      errors: [],
+      failed: 0,
+      finishedAt: new Date(),
+      missing: 0,
+      processed: 0,
+      scanId: 'test',
+      startedAt: new Date(),
+      status: 'completed',
+      unchanged: 0,
+    }),
   },
   tokenService: {
     createAccessToken: async () => '',

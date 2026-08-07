@@ -25,6 +25,7 @@ describe('loadConfig', () => {
         user: 'musix_vault',
       },
       HOST: '0.0.0.0',
+      LIBRARY_PATH: '/music',
       LOG_LEVEL: 'info',
       NODE_ENV: 'development',
       PORT: 3000,

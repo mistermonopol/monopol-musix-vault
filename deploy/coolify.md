@@ -6,10 +6,11 @@ Monopol Musix Vault uses the root `compose.yaml` as its Coolify deployment defin
 
 1. In Coolify, create a new **Docker Compose** resource from the GitHub repository.
 2. Select the `main` branch and use `/compose.yaml` as the Compose location.
-3. Configure `POSTGRES_DB`, `POSTGRES_USER`, and `POSTGRES_PASSWORD` as runtime environment variables.
-4. Generate `POSTGRES_PASSWORD` with a password manager and store it only in Coolify's secret environment configuration.
-5. Attach persistent storage to the `postgres_data` volume.
-6. Deploy and wait for the PostgreSQL health check to pass.
+3. Configure `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `AUTH_SECRET` as runtime environment variables.
+4. Generate `POSTGRES_PASSWORD` and `AUTH_SECRET` with a password manager and store them only in Coolify's secret environment configuration.
+5. Set `MUSIC_PATH` to the music directory on the Coolify host. Compose mounts it read-only at `/music` inside the API container.
+6. Attach persistent storage to the `postgres_data` volume.
+7. Deploy and wait for both PostgreSQL and API health checks to pass.
 
 No database port should be exposed publicly. The backend service will join the private `backend` network when introduced and will be the only public application service.
 

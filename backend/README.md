@@ -31,3 +31,8 @@ Access tokens are short-lived HS256 JWTs intended for the `Authorization: Bearer
 - `POST /auth/refresh` rotates a refresh token and issues a new token pair.
 - `POST /auth/logout` revokes a refresh token.
 - `GET /auth/me` returns the user associated with a valid bearer access token.
+- `POST /library/scan` performs an authenticated incremental scan of the configured library.
+
+## Music scanning
+
+The host path configured by `MUSIC_PATH` is mounted read-only at `/music`. Scans recursively discover supported audio formats without following symbolic-link directories, extract embedded metadata, and transactionally maintain normalized artists, albums, genres, tracks, and their relationships. Unchanged files avoid metadata parsing; unavailable files are retained and marked missing rather than deleted. Per-file failures are returned in the scan result and do not abort healthy files.

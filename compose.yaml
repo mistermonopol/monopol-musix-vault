@@ -20,6 +20,7 @@ services:
       DB_SSL: "false"
       DB_USER: ${POSTGRES_USER:-musix_vault}
       HOST: 0.0.0.0
+      LIBRARY_PATH: /music
       LOG_LEVEL: ${LOG_LEVEL:-info}
       NODE_ENV: production
       PORT: 3000
@@ -37,6 +38,11 @@ services:
       start_period: 10s
     ports:
       - "${API_PORT:-3000}:3000"
+    volumes:
+      - type: bind
+        source: ${MUSIC_PATH:?Set MUSIC_PATH in .env}
+        target: /music
+        read_only: true
     networks:
       - backend
       - public
