@@ -29,4 +29,4 @@ Application components are added incrementally and validated at each milestone.
 
 ## Local infrastructure
 
-Copy `.env.example` to `.env`, set strong authentication and PostgreSQL secrets, and start the infrastructure with `docker compose up -d --wait`. The Compose stack expects a readable music library at `/srv/monopol-musix-vault/music` on the Docker host. See `deploy/coolify.md` for production deployment guidance.
+Copy `.env.example` to `.env`, set strong authentication and PostgreSQL secrets, and start local infrastructure with `docker compose -f compose.yaml -f compose.local.yaml up -d --wait`. The local override publishes the web player at `http://localhost:8080` and the API at `http://localhost:3000`; production services remain internal behind Coolify's proxy. The stack expects a readable music library at `/srv/monopol-musix-vault/music` on the Docker host. See `deploy/coolify.md` for production deployment guidance.

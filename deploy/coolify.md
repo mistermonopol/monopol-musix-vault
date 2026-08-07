@@ -10,7 +10,7 @@ Monopol Musix Vault uses the root `compose.yaml` as its Coolify deployment defin
 4. Generate `POSTGRES_PASSWORD` and `AUTH_SECRET` with a password manager and store them only in Coolify's secret environment configuration.
 5. Create `/srv/monopol-musix-vault/music` on the Coolify host and grant the container read access. Compose mounts this fixed path read-only at `/music`; a fixed source is required because Coolify rejects variable interpolation in volume definitions.
 6. Attach persistent storage to the `postgres_data` volume.
-7. Assign the public domain to the `web` service on port `80`. The web container proxies same-origin `/api` requests to the private API service.
+7. Assign the public domain to the `web` service on its internal port `80`. Do not publish host ports; Coolify's proxy reaches the service through its Docker network, allowing zero-downtime replacements. The web container proxies same-origin `/api` requests to the private API service.
 8. Deploy and wait for PostgreSQL, API, and web health checks to pass.
 
 No database port should be exposed publicly. Route normal users to the `web` service; direct API publication is optional for future native clients and should use a separate API hostname when enabled.
