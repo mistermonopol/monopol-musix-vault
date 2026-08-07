@@ -4,6 +4,7 @@ import '../../../core/api/api_client.dart';
 import '../data/session_store.dart';
 import '../domain/auth_session.dart';
 import '../../library/domain/catalog_track.dart';
+import '../../player/domain/playback_source.dart';
 
 enum AuthStatus { restoring, signedOut, authenticating, signedIn }
 
@@ -89,6 +90,22 @@ final class AuthController extends ChangeNotifier {
       accessToken: currentSession.accessToken,
       search: search,
     );
+  }
+
+  List<PlaybackSource> playbackSources(List<CatalogTrack> tracks) {
+    final currentSession = session;
+    if (currentSession == null) {
+      throw const ApiException('Session abgelaufen.', statusCode: 401);
+    }
+    return tracks
+        .map(
+          (track) => PlaybackSource(
+            track: track,
+            uri: api.streamUri(track.id),
+            headers: {'Authorization': 'Bearer ${currentSession.accessToken}'},
+          ),
+        )
+        .toList(growable: false);
   }
 
   Future<void> signOut() async {

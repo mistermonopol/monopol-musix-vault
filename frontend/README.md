@@ -12,8 +12,12 @@ Native mobile and desktop client for Android, iOS, Windows, macOS, and Linux. Th
 - Refresh token and access code stored through platform secure storage
 - In-memory access token
 - Authenticated catalog loading with title, artist, album, duration, search, and pull-to-refresh
+- Cross-platform `media_kit` audio engine
+- JWT-authenticated HTTP range streaming without secrets in URLs
+- Queue from the current catalog, play/pause, seek, previous, and next controls
+- Persistent miniplayer with buffering and playback-error states
 
-The authenticated audio player is the next milestone.
+Artwork, background media controls, shuffle, and repeat are the next player milestones.
 
 ## Run
 
@@ -34,7 +38,7 @@ Android emulators normally reach a host API through `http://10.0.2.2:3000`. Plai
 ## Validate
 
 ```shell
-flutter format --set-exit-if-changed lib test
+dart format --set-exit-if-changed lib test
 flutter analyze
 flutter test
 ```

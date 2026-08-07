@@ -70,6 +70,8 @@ final class ApiClient {
     return CatalogPage.fromJson(_decode(response));
   }
 
+  Uri streamUri(String trackId) => _resolve('/tracks/$trackId/stream');
+
   Uri _resolve(String path) => baseUrl.resolve(path);
 
   Map<String, String> _headers(String accessCode, {String? accessToken}) => {

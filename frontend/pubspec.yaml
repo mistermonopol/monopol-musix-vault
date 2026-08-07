@@ -12,6 +12,8 @@ dependencies:
   # 11.x requires Android API 37, which Flutter's current AGP template does not support yet.
   flutter_secure_storage: ^10.0.0
   http: ^1.6.0
+  media_kit: ^1.2.6
+  media_kit_libs_audio: ^1.0.7
 
 dev_dependencies:
   flutter_test:

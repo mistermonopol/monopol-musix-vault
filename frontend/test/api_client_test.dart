@@ -86,6 +86,15 @@ void main() {
     expect(page.items.single.album, 'Album');
   });
 
+  test('builds a secret-free stream URL', () {
+    final client = ApiClient(baseUrl: Uri.parse('https://api.example.test'));
+
+    final uri = client.streamUri('track-id');
+
+    expect(uri.toString(), 'https://api.example.test/tracks/track-id/stream');
+    expect(uri.hasQuery, isFalse);
+  });
+
   test('API errors expose status and server code', () async {
     final client = ApiClient(
       baseUrl: Uri.parse('https://api.example.test'),

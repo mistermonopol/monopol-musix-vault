@@ -4,11 +4,18 @@ import 'package:flutter/material.dart';
 
 import '../../auth/presentation/auth_controller.dart';
 import '../domain/catalog_track.dart';
+import '../../player/presentation/audio_player_controller.dart';
+import '../../player/presentation/mini_player.dart';
 
 final class LibraryScreen extends StatefulWidget {
-  const LibraryScreen({required this.authController, super.key});
+  const LibraryScreen({
+    required this.authController,
+    required this.audioController,
+    super.key,
+  });
 
   final AuthController authController;
+  final AudioPlayerController audioController;
 
   @override
   State<LibraryScreen> createState() => _LibraryScreenState();
@@ -47,11 +54,12 @@ final class _LibraryScreenState extends State<LibraryScreen> {
         ),
         IconButton(
           tooltip: 'Abmelden',
-          onPressed: widget.authController.signOut,
+          onPressed: _signOut,
           icon: const Icon(Icons.logout),
         ),
       ],
     ),
+    bottomNavigationBar: MiniPlayer(controller: widget.audioController),
     body: SafeArea(
       child: Column(
         children: [
@@ -165,15 +173,29 @@ final class _LibraryScreenState extends State<LibraryScreen> {
               overflow: TextOverflow.ellipsis,
             ),
             trailing: Text(_formatDuration(track.durationSeconds)),
-            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Der Audio-Player folgt als nächster Schritt.'),
-              ),
-            ),
+            selected: widget.audioController.currentTrack?.id == track.id,
+            onTap: () => _play(index),
           );
         },
       ),
     );
+  }
+
+  Future<void> _play(int index) async {
+    try {
+      final sources = widget.authController.playbackSources(_tracks);
+      await widget.audioController.playQueue(sources, index);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Wiedergabe nicht möglich: $error')),
+      );
+    }
+  }
+
+  Future<void> _signOut() async {
+    await widget.audioController.stop();
+    await widget.authController.signOut();
   }
 
   Future<void> _load() async {

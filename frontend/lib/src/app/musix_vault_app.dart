@@ -6,9 +6,14 @@ import '../features/auth/data/session_store.dart';
 import '../features/auth/presentation/auth_controller.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/library/presentation/library_screen.dart';
+import '../features/player/presentation/audio_player_controller.dart';
 
 final class MusixVaultApp extends StatefulWidget {
-  const MusixVaultApp({required this.authController, super.key});
+  const MusixVaultApp({
+    required this.authController,
+    required this.audioController,
+    super.key,
+  });
 
   factory MusixVaultApp.bootstrap() {
     final config = AppConfig.fromEnvironment();
@@ -17,10 +22,12 @@ final class MusixVaultApp extends StatefulWidget {
         api: ApiClient(baseUrl: config.apiBaseUrl),
         store: SecureSessionStore(),
       ),
+      audioController: AudioPlayerController(),
     );
   }
 
   final AuthController authController;
+  final AudioPlayerController audioController;
 
   @override
   State<MusixVaultApp> createState() => _MusixVaultAppState();
@@ -31,13 +38,16 @@ final class _MusixVaultAppState extends State<MusixVaultApp> {
   void initState() {
     super.initState();
     widget.authController.addListener(_refresh);
+    widget.audioController.addListener(_refresh);
     widget.authController.restore();
   }
 
   @override
   void dispose() {
     widget.authController.removeListener(_refresh);
+    widget.audioController.removeListener(_refresh);
     widget.authController.dispose();
+    widget.audioController.dispose();
     super.dispose();
   }
 
@@ -69,6 +79,9 @@ final class _MusixVaultAppState extends State<MusixVaultApp> {
     ),
     AuthStatus.signedOut ||
     AuthStatus.authenticating => LoginScreen(controller: widget.authController),
-    AuthStatus.signedIn => LibraryScreen(authController: widget.authController),
+    AuthStatus.signedIn => LibraryScreen(
+      authController: widget.authController,
+      audioController: widget.audioController,
+    ),
   };
 }

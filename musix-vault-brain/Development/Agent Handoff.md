@@ -109,11 +109,11 @@ Only playback is expected to be functional across all theme designs at this stag
 
 `frontend/` is a native Flutter client targeting Android, iOS, Windows, macOS, and Linux; browser support remains in `web/`. The API endpoint defaults to `https://api.vault.monopol-ai.de` and can be overridden with `--dart-define=MMV_API_URL=...`. Never compile the access code into the application.
 
-The first Flutter slice implements login and first-admin bootstrap, sends `X-Access-Code`, restores sessions by rotating the refresh token, keeps the short-lived access token in memory, and stores the access code and refresh token through platform secure storage. Library loading and playback are not implemented yet. Windows plugin builds require Windows Developer Mode because Flutter needs symlink support.
+The Flutter client implements login and first-admin bootstrap, sends `X-Access-Code`, restores sessions by rotating the refresh token, keeps the short-lived access token in memory, and stores the access code and refresh token through platform secure storage. It loads and searches the PostgreSQL catalog and uses `media_kit` for JWT-authenticated HTTP range streaming with queue, seek, play/pause, previous/next, buffering, and error states. Stream credentials are sent only in the bearer header, never in URLs. Windows plugin builds require Windows Developer Mode because Flutter needs symlink support.
 
 ## Validation baseline
 
-Before handoff, the backend passed strict TypeScript, production build, and 87 automated tests. The web app passed strict TypeScript, production build, and 19 automated tests. The Flutter client passed `flutter analyze` with no issues and all 3 initial tests passed. Production Compose configuration validation also passed. Full container E2E covered PostgreSQL migration, auth rotation, real WAV scanning, PostgreSQL-to-Obsidian export, access-code rejection and acceptance, cookie-authenticated full/ranged streaming, web availability while the API was stopped, sanitized proxy failure responses, API proxy recovery, nginx health, and direct theme-route reloads.
+Before handoff, the backend passed strict TypeScript, production build, and 87 automated tests. The web app passed strict TypeScript, production build, and 19 automated tests. The Flutter client passed `flutter analyze` with no issues, all 5 tests passed, and an Android release APK with the native audio engine built successfully. Production Compose configuration validation also passed. Full container E2E covered PostgreSQL migration, auth rotation, real WAV scanning, PostgreSQL-to-Obsidian export, access-code rejection and acceptance, cookie-authenticated full/ranged streaming, web availability while the API was stopped, sanitized proxy failure responses, API proxy recovery, nginx health, and direct theme-route reloads.
 
 ## Prioritized TODO
 
@@ -168,8 +168,8 @@ Before handoff, the backend passed strict TypeScript, production build, and 87 a
 
 - [x] Flutter application scaffold and initial authentication API client
 - [ ] Add authenticated Flutter request retry, logout API call, and broader controller/widget tests
-- [ ] Add Flutter catalog query, search, pagination, and adaptive library UI
-- [ ] Flutter audio player with authenticated range streaming
+- [ ] Add Flutter catalog pagination and further adaptive library refinements; initial query and search are implemented
+- [x] Flutter audio player with authenticated range streaming
 - [ ] Full library UI and artwork
 - [ ] Search refinements
 - [ ] Playlists
