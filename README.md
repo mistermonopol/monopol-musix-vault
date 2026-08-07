@@ -6,6 +6,7 @@ Monopol Musix Vault is a self-hosted music library and player designed to keep a
 
 - `backend/` — TypeScript HTTP API, library scanner, metadata persistence, and audio streaming
 - `frontend/` — Flutter application for mobile, desktop, and web
+- `musix-vault-brain/` — versioned Obsidian knowledge graph for editorial music metadata
 - `deploy/` — Docker and Coolify deployment configuration
 - `docs/` — Architecture, development, and operations documentation
 
