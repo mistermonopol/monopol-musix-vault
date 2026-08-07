@@ -1,6 +1,33 @@
 name: monopol-musix-vault
 
 services:
+  api:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    environment:
+      HOST: 0.0.0.0
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      NODE_ENV: production
+      PORT: 3000
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    ports:
+      - "${API_PORT:-3000}:3000"
+    networks:
+      - backend
+      - public
+
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped
@@ -25,3 +52,4 @@ volumes:
 networks:
   backend:
     internal: true
+  public:
