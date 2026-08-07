@@ -9,7 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_secure_storage: ^11.0.0
+  # 11.x requires Android API 37, which Flutter's current AGP template does not support yet.
+  flutter_secure_storage: ^10.0.0
   http: ^1.6.0
 
 dev_dependencies:
