@@ -12,7 +12,11 @@ Monopol Musix Vault uses the root `compose.yaml` as its Coolify deployment defin
 6. Attach persistent storage to the `postgres_data` volume.
 7. Deploy and wait for both PostgreSQL and API health checks to pass.
 
-No database port should be exposed publicly. The backend service will join the private `backend` network when introduced and will be the only public application service.
+No database port should be exposed publicly. The API is the only public application service.
+
+## Streaming proxy
+
+Configure the Coolify proxy to preserve `Authorization`, `Range`, `If-Range`, `Content-Range`, and `Accept-Ranges` headers. Disable response buffering for `/tracks/*/stream` so audio starts promptly and disconnected clients release backend file handles. Keep proxy read timeouts long enough for large lossless files; do not enable proxy-level public caching because streams are authenticated.
 
 ## Backups
 

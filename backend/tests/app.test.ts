@@ -28,7 +28,7 @@ const config: AppConfig = {
 
 const authDependencies: Pick<
   BuildAppOptions,
-  'authRepository' | 'authService' | 'scanner' | 'tokenService'
+  'authRepository' | 'authService' | 'scanner' | 'streaming' | 'tokenService'
 > = {
   authRepository: {
     bootstrapAdmin: async () => null,
@@ -63,6 +63,14 @@ const authDependencies: Pick<
       status: 'completed',
       unchanged: 0,
     }),
+  },
+  streaming: {
+    open: async () => {
+      throw new Error('Not used');
+    },
+    resolve: async () => {
+      throw new Error('Not used');
+    },
   },
   tokenService: {
     createAccessToken: async () => '',

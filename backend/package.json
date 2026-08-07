@@ -14,6 +14,7 @@
     "test": "vitest run",
     "test:e2e": "node tests/auth.e2e.mjs",
     "test:scanner:e2e": "node tests/scanner.e2e.mjs",
+    "test:streaming:e2e": "node tests/streaming.e2e.mjs",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },

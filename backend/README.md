@@ -32,6 +32,12 @@ Access tokens are short-lived HS256 JWTs intended for the `Authorization: Bearer
 - `POST /auth/logout` revokes a refresh token.
 - `GET /auth/me` returns the user associated with a valid bearer access token.
 - `POST /library/scan` performs an authenticated incremental scan of the configured library.
+- `GET /tracks/:trackId/stream` streams an available track and supports one RFC 9110 byte range.
+- `HEAD /tracks/:trackId/stream` returns stream metadata without opening the audio file.
+
+## Audio streaming
+
+Streaming requires a bearer access token and resolves only available catalog tracks. Filesystem paths are canonicalized and constrained to their configured library root, including protection against traversal and symbolic-link escapes. Responses advertise byte-range support, return `206 Partial Content` for valid ranges, and return `416 Range Not Satisfiable` with the resource size for unsatisfiable ranges. Client disconnects destroy the underlying file stream.
 
 ## Music scanning
 

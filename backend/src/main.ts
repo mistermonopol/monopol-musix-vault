@@ -1,6 +1,7 @@
 import { buildApp } from './app.js';
 import { AuthService } from './application/auth-service.js';
 import { MusicScanner } from './application/music-scanner.js';
+import { TrackStreamingService } from './application/track-streaming-service.js';
 import { ArgonPasswordHasher } from './infrastructure/auth/argon-password-hasher.js';
 import { JwtTokenService } from './infrastructure/auth/jwt-token-service.js';
 import { PostgresAuthRepository } from './infrastructure/auth/postgres-auth-repository.js';
@@ -10,6 +11,9 @@ import { PostgresDatabase } from './infrastructure/database/postgres-database.js
 import { FilesystemAudioDiscovery } from './infrastructure/scanner/filesystem-audio-discovery.js';
 import { MusicMetadataReader } from './infrastructure/scanner/music-metadata-reader.js';
 import { PostgresMusicScanRepository } from './infrastructure/scanner/postgres-music-scan-repository.js';
+import { SupportedAudioMimeTypes } from './infrastructure/streaming/audio-mime-types.js';
+import { NodeTrackFileSystem } from './infrastructure/streaming/node-track-file-system.js';
+import { PostgresTrackFileRepository } from './infrastructure/streaming/postgres-track-file-repository.js';
 
 async function start(): Promise<void> {
   const config = loadConfig(process.env);
@@ -39,12 +43,18 @@ async function start(): Promise<void> {
     new FilesystemAudioDiscovery(),
     new MusicMetadataReader(),
   );
+  const streaming = new TrackStreamingService(
+    new PostgresTrackFileRepository(database.client),
+    new NodeTrackFileSystem(),
+    new SupportedAudioMimeTypes(),
+  );
   const app = await buildApp({
     authRepository,
     authService,
     config,
     databaseHealth: database,
     scanner,
+    streaming,
     tokenService,
   });
 

@@ -12,11 +12,13 @@ import type { AuthOperations } from './application/auth-service.js';
 import type { DatabaseHealth } from './application/database-health.js';
 import { GetHealth } from './application/get-health.js';
 import type { MusicScannerOperations } from './application/music-scanner.js';
+import type { TrackStreamingOperations } from './application/track-streaming-service.js';
 import type { AppConfig } from './infrastructure/config.js';
 import { SystemClock } from './infrastructure/system-clock.js';
 import { registerAuthRoutes } from './interfaces/http/auth-routes.js';
 import { registerHealthRoutes } from './interfaces/http/health-routes.js';
 import { registerLibraryRoutes } from './interfaces/http/library-routes.js';
+import { registerStreamingRoutes } from './interfaces/http/streaming-routes.js';
 
 export interface BuildAppOptions {
   readonly authRepository: AuthRepository;
@@ -25,6 +27,7 @@ export interface BuildAppOptions {
   readonly databaseHealth: DatabaseHealth;
   readonly logger?: FastifyServerOptions['logger'];
   readonly scanner: MusicScannerOperations;
+  readonly streaming: TrackStreamingOperations;
   readonly tokenService: TokenService;
 }
 
@@ -88,6 +91,10 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   });
   await app.register(registerLibraryRoutes, {
     scanner: options.scanner,
+    tokenService: options.tokenService,
+  });
+  await app.register(registerStreamingRoutes, {
+    streaming: options.streaming,
     tokenService: options.tokenService,
   });
 
