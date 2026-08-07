@@ -1,6 +1,6 @@
 # Monopol Musix Vault Web
 
-Standalone React/Vite client for Monopol Musix Vault. It provides first-admin bootstrap and login, a searchable library, scan controls, and a persistent native-audio player in a responsive dark interface.
+Standalone React/Vite client for Monopol Musix Vault. It provides first-admin bootstrap and login, a searchable library, scan controls, and a persistent native-audio player with four responsive, selectable interface designs.
 
 ## Requirements
 
@@ -16,6 +16,19 @@ npm run dev
 ```
 
 Vite serves the app (normally on `http://localhost:5173`) and proxies `/api/*` to `http://localhost:3000/*`. Keeping frontend and API same-origin is intentional: it makes native audio playback compatible with authenticated media requests through the service worker.
+
+## Interface routes
+
+The authenticated library is available in four screenshot-inspired designs. They share the same catalog, search, scan, authentication, and native audio state:
+
+- `/spotify` — near-black three-column library with a purple feature area
+- `/soundcloud` — centered grid interface with an orange accent
+- `/applemusic` — charcoal editorial interface with a red accent
+- `/amazonmusic` — black and warm-brown interface with a cyan accent
+
+The persistent **UI Design** menu changes routes with the History API and supports browser back/forward navigation. The selected route is saved in `localStorage`. Opening `/` or an unknown SPA route redirects to the saved design, or `/spotify` when no choice has been saved. No third-party brand assets, logos, or image hotlinks are used; album artwork is generated deterministically from catalog track data.
+
+Production hosting must retain the existing SPA fallback to `index.html` for all four direct routes.
 
 ## Commands
 
@@ -70,4 +83,4 @@ The nginx config expects the backend to resolve as `backend:3000` (for example, 
 
 ## Accessibility and responsive behavior
 
-Controls use native buttons, labels, status/alert regions, visible focus rings, and descriptive media labels. Motion respects `prefers-reduced-motion`. The track table collapses secondary columns on narrow screens, and player controls reflow for touch-sized mobile layouts.
+Controls use native buttons, labels, menu semantics, status/alert regions, visible focus rings, and descriptive media labels. The UI Design picker is keyboard operable and announces the active design. Motion respects `prefers-reduced-motion`. Sidebars and secondary metadata collapse at tablet/mobile widths, artwork grids reflow, and player controls simplify for touch-sized layouts.
