@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 
 const baseUrl = process.env.API_URL ?? 'http://127.0.0.1:3000';
+const accessCode = process.env.API_ACCESS_CODE;
+assert.equal(typeof accessCode, 'string', 'API_ACCESS_CODE is required');
 const credentials = {
   email: 'owner@example.com',
   password: 'a-secure-test-password',
@@ -9,9 +11,20 @@ const credentials = {
 async function request(path, options = {}) {
   return fetch(`${baseUrl}${path}`, {
     ...options,
-    headers: { 'content-type': 'application/json', ...options.headers },
+    headers: {
+      'content-type': 'application/json',
+      'x-access-code': accessCode,
+      ...options.headers,
+    },
   });
 }
+
+const denied = await fetch(`${baseUrl}/auth/login`, {
+  body: JSON.stringify(credentials),
+  headers: { 'content-type': 'application/json' },
+  method: 'POST',
+});
+assert.equal(denied.status, 403);
 
 const bootstrap = await request('/auth/bootstrap', {
   body: JSON.stringify(credentials),

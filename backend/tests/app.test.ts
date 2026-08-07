@@ -4,7 +4,10 @@ import { buildApp, type BuildAppOptions } from '../src/app.js';
 import type { DatabaseHealth } from '../src/application/database-health.js';
 import type { AppConfig } from '../src/infrastructure/config.js';
 
+const accessCode = 'test-access-code-at-least-16';
+
 const config: AppConfig = {
+  accessCode,
   auth: {
     accessTokenMinutes: 15,
     refreshTokenDays: 30,
@@ -96,7 +99,7 @@ afterEach(async () => {
 });
 
 describe('HTTP application', () => {
-  it('reports process health', async () => {
+  it.each(['GET', 'HEAD'] as const)('exempts %s /health from the access gate', async (method) => {
     const app = await buildApp({
       ...authDependencies,
       config,
@@ -104,15 +107,17 @@ describe('HTTP application', () => {
     });
     apps.push(app);
 
-    const response = await app.inject({ method: 'GET', url: '/health' });
+    const response = await app.inject({ method, url: '/health' });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toMatchObject({
-      service: 'monopol-musix-vault-api',
-      status: 'ok',
-      version: '0.1.0',
-    });
-    expect(response.json()).toHaveProperty('timestamp');
+    if (method === 'GET') {
+      expect(response.json()).toMatchObject({
+        service: 'monopol-musix-vault-api',
+        status: 'ok',
+        version: '0.1.0',
+      });
+      expect(response.json()).toHaveProperty('timestamp');
+    }
   });
 
   it('reports readiness when the database is available', async () => {
@@ -146,7 +151,7 @@ describe('HTTP application', () => {
     });
   });
 
-  it('returns a structured not-found response', async () => {
+  it.each([undefined, 'wrong-access-code'])('denies a missing or incorrect access code', async (suppliedCode) => {
     const app = await buildApp({
       ...authDependencies,
       config,
@@ -154,7 +159,33 @@ describe('HTTP application', () => {
     });
     apps.push(app);
 
-    const response = await app.inject({ method: 'GET', url: '/missing' });
+    const response = await app.inject({
+      headers: suppliedCode === undefined ? {} : { 'x-access-code': suppliedCode },
+      method: 'GET',
+      url: '/missing',
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toEqual({
+      code: 'ACCESS_DENIED',
+      error: 'Access denied',
+      statusCode: 403,
+    });
+  });
+
+  it('accepts the correct access code', async () => {
+    const app = await buildApp({
+      ...authDependencies,
+      config,
+      databaseHealth: databaseHealth(true),
+    });
+    apps.push(app);
+
+    const response = await app.inject({
+      headers: { 'x-access-code': accessCode },
+      method: 'GET',
+      url: '/missing',
+    });
 
     expect(response.statusCode).toBe(404);
     expect(response.json()).toEqual({

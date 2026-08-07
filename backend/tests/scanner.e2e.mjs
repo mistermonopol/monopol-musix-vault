@@ -1,12 +1,17 @@
 import assert from 'node:assert/strict';
 
 const baseUrl = process.env.API_URL ?? 'http://127.0.0.1:3000';
+const accessCode = process.env.API_ACCESS_CODE;
+assert.equal(typeof accessCode, 'string', 'API_ACCESS_CODE is required');
 const bootstrap = await fetch(`${baseUrl}/auth/bootstrap`, {
   body: JSON.stringify({
     email: 'scanner@example.com',
     password: 'a-secure-test-password',
   }),
-  headers: { 'content-type': 'application/json' },
+  headers: {
+    'content-type': 'application/json',
+    'x-access-code': accessCode,
+  },
   method: 'POST',
 });
 assert.equal(bootstrap.status, 201);
@@ -14,7 +19,10 @@ const { accessToken } = await bootstrap.json();
 
 async function scan() {
   const response = await fetch(`${baseUrl}/library/scan`, {
-    headers: { authorization: `Bearer ${accessToken}` },
+    headers: {
+      authorization: `Bearer ${accessToken}`,
+      'x-access-code': accessCode,
+    },
     method: 'POST',
   });
   assert.equal(response.status, 200);

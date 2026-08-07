@@ -6,10 +6,12 @@ describe('loadConfig', () => {
   it('provides safe development defaults', () => {
     expect(
       loadConfig({
+        API_ACCESS_CODE: 'test-access-code-at-least-16',
         AUTH_SECRET: 'test-secret-that-is-at-least-32-characters',
         DB_PASSWORD: 'secret',
       }),
     ).toEqual({
+      accessCode: 'test-access-code-at-least-16',
       auth: {
         accessTokenMinutes: 15,
         refreshTokenDays: 30,
@@ -32,13 +34,33 @@ describe('loadConfig', () => {
     });
   });
 
+  it('requires an access code', () => {
+    expect(() =>
+      loadConfig({
+        AUTH_SECRET: 'test-secret-that-is-at-least-32-characters',
+        DB_PASSWORD: 'secret',
+      }),
+    ).toThrow('API_ACCESS_CODE');
+  });
+
+  it('rejects an access code shorter than 16 characters', () => {
+    expect(() =>
+      loadConfig({
+        API_ACCESS_CODE: 'too-short',
+        AUTH_SECRET: 'test-secret-that-is-at-least-32-characters',
+        DB_PASSWORD: 'secret',
+      }),
+    ).toThrow('Too small');
+  });
+
   it('rejects an invalid port', () => {
-    expect(() => loadConfig({
-            AUTH_SECRET: 'test-secret-that-is-at-least-32-characters',
-            DB_PASSWORD: 'secret',
-            PORT: '70000',
-          })).toThrow(
-      'Too big',
-    );
+    expect(() =>
+      loadConfig({
+        API_ACCESS_CODE: 'test-access-code-at-least-16',
+        AUTH_SECRET: 'test-secret-that-is-at-least-32-characters',
+        DB_PASSWORD: 'secret',
+        PORT: '70000',
+      }),
+    ).toThrow('Too big');
   });
 });

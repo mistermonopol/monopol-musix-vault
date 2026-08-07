@@ -26,16 +26,22 @@ export async function authenticate(
   const bearerToken = authorization?.startsWith('Bearer ')
     ? authorization.slice(7)
     : undefined;
-  const token = bearerToken ?? (allowStreamCookie
+  const streamCookie = allowStreamCookie
     ? readCookie(request.headers.cookie, 'mmv_stream')
-    : undefined);
-  if (token === undefined) throw invalidToken();
-  try {
-    const claims = await tokenService.verifyAccessToken(token);
-    return claims.userId;
-  } catch {
-    throw invalidToken();
+    : undefined;
+  const candidates = [bearerToken, streamCookie].filter(
+    (token, index, tokens): token is string =>
+      token !== undefined && tokens.indexOf(token) === index,
+  );
+  for (const token of candidates) {
+    try {
+      const claims = await tokenService.verifyAccessToken(token);
+      return claims.userId;
+    } catch {
+      // A stale legacy bearer token must not override a valid HttpOnly stream cookie.
+    }
   }
+  throw invalidToken();
 }
 
 function sendAuthenticated(reply: FastifyReply, result: AuthResult): FastifyReply {
@@ -94,6 +100,7 @@ export async function registerAuthRoutes(
   });
 
   app.post('/auth/logout', async (request, reply) => {
+    await authenticate(request, dependencies.tokenService);
     const body = refreshSchema.parse(request.body);
     await dependencies.authService.logout(body.refreshToken);
     void reply.header(

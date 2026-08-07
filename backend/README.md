@@ -12,11 +12,13 @@ npm run build
 npm run dev
 ```
 
-Configuration is supplied through environment variables and validated at startup. PostgreSQL settings use the `DB_*` variables documented in the root `.env.example`. Logs are newline-delimited JSON outside the test environment.
+Configuration is supplied through environment variables and validated at startup. PostgreSQL settings use the `DB_*` variables documented in the root `.env.example`. `API_ACCESS_CODE` is required, must contain at least 16 characters, and should be generated as a high-entropy secret. Logs are newline-delimited JSON outside the test environment; the access-code header is redacted.
 
 Versioned SQL migrations live in `migrations/`. Startup acquires a PostgreSQL advisory lock, verifies checksums of previously applied migrations, applies pending migrations in one transaction, and refuses to start if an applied migration was modified.
 
 ## Authentication
+
+Every endpoint requires `X-Access-Code: <API_ACCESS_CODE>` except `GET`/`HEAD` requests to `/health`, `/ready`, and `/tracks/:trackId/stream`. The stream exemption applies only to the access-code gate: streaming remains protected by a JWT bearer token or the HttpOnly `mmv_stream` cookie. JWT-protected endpoints require both the access code and a valid JWT. Bootstrap, login, and refresh require the access code; logout and `me` require both layers.
 
 The first installation creates its administrator through `POST /auth/bootstrap`. This endpoint is transactionally limited to the first account and returns `409 Conflict` after bootstrap. Passwords require 12–128 characters and are stored with Argon2id. Login and bootstrap are rate-limited.
 

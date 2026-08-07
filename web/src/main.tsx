@@ -4,7 +4,10 @@ import App from './App';
 import './styles.css';
 
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => { void navigator.serviceWorker.register('/sw.js'); });
+  window.addEventListener('load', () => {
+    void navigator.serviceWorker.getRegistrations()
+      .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())));
+  });
 }
 
 const root = document.getElementById('root');

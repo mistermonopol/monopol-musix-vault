@@ -24,6 +24,10 @@ Create track notes from `Templates/Track.md`. Keep metadata factual and structur
 
 The future synchronization service will treat database scanner metadata as authoritative for technical file properties and Obsidian as authoritative for editorial properties. Conflicts will be reported rather than silently overwritten.
 
+## Development handoff
+
+Current architecture, deployment state, security decisions, and the prioritized backlog are maintained in `[[Development/Agent Handoff]]` so a new agent session can continue without relying on chat history.
+
 ## Privacy
 
 Do not store passwords, API tokens, private keys, or absolute local music paths in this vault. Everything committed here may be uploaded to GitHub.

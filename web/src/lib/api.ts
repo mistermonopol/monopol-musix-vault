@@ -1,6 +1,7 @@
 import type { AuthSession, ScanResult, Track, TrackPage } from './types';
 
 const REFRESH_KEY = 'mmv.refresh-token';
+const ACCESS_CODE_KEY = 'mmv.access-code';
 let accessToken: string | null = null;
 let refreshPromise: Promise<AuthSession> | null = null;
 
@@ -26,7 +27,6 @@ function persistRefreshToken(token: string | null): void {
 function publishSession(session: AuthSession | null): void {
   accessToken = session?.accessToken ?? null;
   persistRefreshToken(session?.refreshToken ?? null);
-  void sendTokenToServiceWorker(accessToken);
   sessionListeners.forEach((listener) => listener(session));
 }
 
@@ -36,12 +36,18 @@ async function parseError(response: Response): Promise<ApiError> {
   return new ApiError(body.error ?? `Request failed (${response.status})`, response.status, body.code);
 }
 
-async function request<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
+async function request<T>(
+  path: string,
+  init: RequestInit = {},
+  retry = true,
+  accessCode = sessionStorage.getItem(ACCESS_CODE_KEY),
+): Promise<T> {
   const headers = new Headers(init.headers);
   if (init.body !== undefined && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+  if (accessCode !== null) headers.set('X-Access-Code', accessCode);
   if (accessToken !== null) headers.set('Authorization', `Bearer ${accessToken}`);
   const response = await fetch(`/api${path}`, { ...init, headers });
-  if (response.status === 401 && retry && localStorage.getItem(REFRESH_KEY) !== null) {
+  if (response.status === 401 && retry && hasSavedSession()) {
     await refreshSession();
     return request<T>(path, init, false);
   }
@@ -82,11 +88,17 @@ function normalizeTrack(value: unknown): Track | null {
   };
 }
 
-export async function authenticate(mode: 'login' | 'bootstrap', email: string, password: string): Promise<AuthSession> {
+export async function authenticate(
+  mode: 'login' | 'bootstrap',
+  email: string,
+  password: string,
+  accessCode: string,
+): Promise<AuthSession> {
   const session = await request<AuthSession>(`/auth/${mode}`, {
     method: 'POST',
     body: JSON.stringify({ email, password }),
-  }, false);
+  }, false, accessCode);
+  sessionStorage.setItem(ACCESS_CODE_KEY, accessCode);
   publishSession(session);
   return session;
 }
@@ -95,6 +107,9 @@ export async function refreshSession(): Promise<AuthSession> {
   if (refreshPromise !== null) return refreshPromise;
   const refreshToken = localStorage.getItem(REFRESH_KEY);
   if (refreshToken === null) throw new ApiError('No saved session', 401);
+  if (sessionStorage.getItem(ACCESS_CODE_KEY) === null) {
+    throw new ApiError('Access code required', 401);
+  }
   refreshPromise = request<AuthSession>('/auth/refresh', {
     method: 'POST',
     body: JSON.stringify({ refreshToken }),
@@ -102,6 +117,7 @@ export async function refreshSession(): Promise<AuthSession> {
     publishSession(session);
     return session;
   }).catch((error: unknown) => {
+    sessionStorage.removeItem(ACCESS_CODE_KEY);
     publishSession(null);
     throw error;
   }).finally(() => { refreshPromise = null; });
@@ -115,6 +131,7 @@ export async function logout(): Promise<void> {
       method: 'POST', body: JSON.stringify({ refreshToken }),
     }, false);
   } finally {
+    sessionStorage.removeItem(ACCESS_CODE_KEY);
     publishSession(null);
   }
 }
@@ -154,17 +171,11 @@ export function scanLibrary(): Promise<ScanResult> {
 }
 
 export function hasSavedSession(): boolean {
-  return localStorage.getItem(REFRESH_KEY) !== null;
+  return localStorage.getItem(REFRESH_KEY) !== null
+    && sessionStorage.getItem(ACCESS_CODE_KEY) !== null;
 }
 
 export function subscribeToSession(listener: SessionListener): () => void {
   sessionListeners.add(listener);
   return () => sessionListeners.delete(listener);
-}
-
-export async function sendTokenToServiceWorker(token: string | null): Promise<void> {
-  if (!('serviceWorker' in navigator)) return;
-  const registration = await navigator.serviceWorker.ready;
-  const target = navigator.serviceWorker.controller ?? registration.active;
-  target?.postMessage({ type: token === null ? 'CLEAR_AUTH_TOKEN' : 'SET_AUTH_TOKEN', token });
 }

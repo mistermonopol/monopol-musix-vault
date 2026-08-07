@@ -14,6 +14,7 @@ import type { DatabaseHealth } from './application/database-health.js';
 import { GetHealth } from './application/get-health.js';
 import type { MusicScannerOperations } from './application/music-scanner.js';
 import type { TrackStreamingOperations } from './application/track-streaming-service.js';
+import { createAccessCodeGate } from './infrastructure/access-code.js';
 import type { AppConfig } from './infrastructure/config.js';
 import { SystemClock } from './infrastructure/system-clock.js';
 import { registerAuthRoutes } from './interfaces/http/auth-routes.js';
@@ -45,8 +46,11 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
         ? false
         : {
             level: options.config.LOG_LEVEL,
+            redact: ['req.headers.x-access-code'],
           }),
   });
+
+  app.addHook('onRequest', createAccessCodeGate(options.config.accessCode));
 
   app.setErrorHandler((error, request, reply) => {
     if (error instanceof AuthError) {

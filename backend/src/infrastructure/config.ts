@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 const environmentSchema = z.object({
+  API_ACCESS_CODE: z.string().min(16),
   AUTH_ACCESS_TOKEN_MINUTES: z.coerce.number().int().min(1).max(60).default(15),
   AUTH_REFRESH_TOKEN_DAYS: z.coerce.number().int().min(1).max(90).default(30),
   AUTH_SECRET: z.string().min(32),
@@ -37,6 +38,7 @@ export interface DatabaseConfig {
 }
 
 export interface AppConfig {
+  readonly accessCode: string;
   readonly auth: AuthConfig;
   readonly database: DatabaseConfig;
   readonly HOST: string;
@@ -54,6 +56,7 @@ export function loadConfig(environment: NodeJS.ProcessEnv): AppConfig {
   }
 
   return {
+    accessCode: result.data.API_ACCESS_CODE,
     auth: {
       accessTokenMinutes: result.data.AUTH_ACCESS_TOKEN_MINUTES,
       refreshTokenDays: result.data.AUTH_REFRESH_TOKEN_DAYS,

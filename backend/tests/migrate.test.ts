@@ -5,6 +5,7 @@ import { loadConfig } from '../src/infrastructure/config.js';
 describe('database configuration', () => {
   it('parses PostgreSQL connection settings', () => {
     const config = loadConfig({
+      API_ACCESS_CODE: 'test-access-code-at-least-16',
       AUTH_SECRET: 'test-secret-that-is-at-least-32-characters',
       DB_HOST: 'database.internal',
       DB_MAX_CONNECTIONS: '20',
