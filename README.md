@@ -24,4 +24,8 @@ Development will require:
 
 ## Status
 
-The repository structure is initialized. Application components are added incrementally and validated at each milestone.
+Application components are added incrementally and validated at each milestone.
+
+## Local infrastructure
+
+Copy `.env.example` to `.env`, set a strong PostgreSQL password, and start the local infrastructure with `docker compose up -d --wait`. See `deploy/coolify.md` for production deployment guidance.
