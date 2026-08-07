@@ -1,0 +1,26 @@
+# Monopol Musix Vault
+
+Monopol Musix Vault is a self-hosted music library and player designed to keep a personal collection private, portable, and under its owner's control.
+
+## Repository layout
+
+- `backend/` — TypeScript HTTP API, library scanner, metadata persistence, and audio streaming
+- `frontend/` — Flutter application for mobile, desktop, and web
+- `deploy/` — Docker and Coolify deployment configuration
+- `docs/` — Architecture, development, and operations documentation
+
+The backend and frontend are independently buildable and deployable. They communicate only through the documented HTTP API.
+
+## Prerequisites
+
+Development will require:
+
+- Node.js 22 LTS or newer
+- npm 10 or newer
+- Flutter 3.32 or newer
+- Docker Engine 27 or newer with Docker Compose v2
+- PostgreSQL 17 (provided through Docker for local development)
+
+## Status
+
+The repository structure is initialized. Application components are added incrementally and validated at each milestone.

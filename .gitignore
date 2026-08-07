@@ -1,0 +1,33 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Editors and operating systems
+.idea/
+.vscode/
+.zed/
+.DS_Store
+Thumbs.db
+
+# Node.js
+backend/node_modules/
+backend/dist/
+backend/coverage/
+backend/*.tsbuildinfo
+npm-debug.log*
+
+# Flutter and Dart
+frontend/.dart_tool/
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+frontend/.packages
+frontend/build/
+frontend/coverage/
+frontend/ios/Flutter/.last_build_id
+frontend/android/.gradle/
+
+# Local runtime data
+data/
+music/
+postgres-data/
