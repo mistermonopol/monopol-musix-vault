@@ -24,6 +24,16 @@ export interface TrackPage {
   readonly total: number;
 }
 
+export interface BrainSyncResult {
+  readonly counts: {
+    readonly albums: number;
+    readonly artists: number;
+    readonly genres: number;
+    readonly tracks: number;
+  };
+  readonly errors: readonly { readonly message: string }[];
+}
+
 export interface ScanResult {
   readonly status: string;
   readonly processed: number;

@@ -18,6 +18,7 @@ const environmentSchema = z.object({
     .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
     .default('info'),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  OBSIDIAN_PATH: z.string().min(1).default('/brain'),
   PORT: z.coerce.number().int().min(1).max(65_535).default(3000),
 });
 
@@ -45,6 +46,7 @@ export interface AppConfig {
   readonly LIBRARY_PATH: string;
   readonly LOG_LEVEL: z.infer<typeof environmentSchema>['LOG_LEVEL'];
   readonly NODE_ENV: z.infer<typeof environmentSchema>['NODE_ENV'];
+  readonly OBSIDIAN_PATH: string;
   readonly PORT: number;
 }
 
@@ -75,6 +77,7 @@ export function loadConfig(environment: NodeJS.ProcessEnv): AppConfig {
     LIBRARY_PATH: result.data.LIBRARY_PATH,
     LOG_LEVEL: result.data.LOG_LEVEL,
     NODE_ENV: result.data.NODE_ENV,
+    OBSIDIAN_PATH: result.data.OBSIDIAN_PATH,
     PORT: result.data.PORT,
   };
 }

@@ -26,12 +26,13 @@ const config: AppConfig = {
   LIBRARY_PATH: '/music',
   LOG_LEVEL: 'silent',
   NODE_ENV: 'test',
+  OBSIDIAN_PATH: '/brain',
   PORT: 3000,
 };
 
 const authDependencies: Pick<
   BuildAppOptions,
-  'authRepository' | 'authService' | 'catalog' | 'scanner' | 'streaming' | 'tokenService'
+  'authRepository' | 'authService' | 'catalog' | 'obsidianSync' | 'scanner' | 'streaming' | 'tokenService'
 > = {
   authRepository: {
     bootstrapAdmin: async () => null,
@@ -55,6 +56,12 @@ const authDependencies: Pick<
   },
   catalog: {
     execute: async () => ({ items: [], page: 1, pageSize: 50, total: 0 }),
+  },
+  obsidianSync: {
+    execute: async () => ({
+      counts: { albums: 0, artists: 0, genres: 0, tracks: 0 },
+      errors: [],
+    }),
   },
   scanner: {
     scan: async () => ({

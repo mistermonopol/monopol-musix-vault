@@ -79,7 +79,9 @@ docker build -t monopol-musix-vault-web .
 docker run --rm -p 8080:80 monopol-musix-vault-web
 ```
 
-The nginx config expects the backend to resolve as `backend:3000` (for example, a Compose service named `backend`). It serves SPA routes through `index.html`, proxies `/api`, forwards request headers (including authorization, access code, cookies, and ranges), exposes range response headers, and disables proxy buffering for streaming. Update `proxy_pass` in `nginx/default.conf` if your service name differs.
+The nginx config resolves the Compose API service at `api:3000` through Docker's embedded DNS at request time. The web container therefore starts independently and continues serving `/healthz`, static assets, and all SPA theme routes while the API is absent or restarting. During an outage, `/api/*` returns a sanitized JSON `502` or `504`; proxying recovers automatically after Docker DNS observes the restarted API.
+
+Nginx strips the browser's `/api` prefix before forwarding, preserves authorization, access-code, cookie, range, and forwarding headers, exposes range response headers, and disables request and response buffering for streaming. `API_ACCESS_CODE` remains required by the API and the client continues sending it as `X-Access-Code`; web availability does not bypass or weaken API authentication.
 
 ## Accessibility and responsive behavior
 

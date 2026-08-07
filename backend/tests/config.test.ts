@@ -30,6 +30,7 @@ describe('loadConfig', () => {
       LIBRARY_PATH: '/music',
       LOG_LEVEL: 'info',
       NODE_ENV: 'development',
+      OBSIDIAN_PATH: '/brain',
       PORT: 3000,
     });
   });

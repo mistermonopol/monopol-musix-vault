@@ -1,4 +1,4 @@
-import type { AuthSession, ScanResult, Track, TrackPage } from './types';
+import type { AuthSession, BrainSyncResult, ScanResult, Track, TrackPage } from './types';
 
 const REFRESH_KEY = 'mmv.refresh-token';
 const ACCESS_CODE_KEY = 'mmv.access-code';
@@ -168,6 +168,10 @@ export async function listTracks(
 
 export function scanLibrary(): Promise<ScanResult> {
   return request<ScanResult>('/library/scan', { method: 'POST' });
+}
+
+export function syncObsidianBrain(): Promise<BrainSyncResult> {
+  return request<BrainSyncResult>('/brain/sync', { method: 'POST' });
 }
 
 export function hasSavedSession(): boolean {

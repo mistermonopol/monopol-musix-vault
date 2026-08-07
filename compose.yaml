@@ -5,9 +5,6 @@ services:
     build:
       context: ./web
     restart: unless-stopped
-    depends_on:
-      api:
-        condition: service_healthy
     expose:
       - "80"
     networks:
@@ -36,6 +33,7 @@ services:
       LIBRARY_PATH: /music
       LOG_LEVEL: ${LOG_LEVEL:-info}
       NODE_ENV: production
+      OBSIDIAN_PATH: /brain
       PORT: 3000
     healthcheck:
       test:
@@ -56,6 +54,9 @@ services:
         source: /srv/monopol-musix-vault/music
         target: /music
         read_only: true
+      - type: bind
+        source: /srv/monopol-musix-vault/brain
+        target: /brain
     networks:
       - backend
       - public

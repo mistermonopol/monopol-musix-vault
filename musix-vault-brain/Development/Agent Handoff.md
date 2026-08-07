@@ -38,6 +38,7 @@ Backend and clients share no source code. They communicate through the HTTP API.
 8. Browser MVP with login, scan, search, catalog, playback, responsive layouts, and same-origin nginx API proxy
 9. Selectable screenshot-inspired UI themes at `/spotify`, `/soundcloud`, `/applemusic`, and `/amazonmusic`
 10. API access-code boundary described below
+11. PostgreSQL-to-Obsidian export with stable IDs, linked entity notes, preserved user regions, atomic writes, and a web sync button
 
 ## Current deployment
 
@@ -47,7 +48,9 @@ Backend and clients share no source code. They communicate through the HTTP API.
 - API service internal port: `3000`
 - PostgreSQL is private and must never publish port `5432`
 - Host music directory: `/srv/monopol-musix-vault/music`
-- API mount: `/music`, read-only
+- API music mount: `/music`, read-only
+- Persistent server vault: `/srv/monopol-musix-vault/brain`
+- API brain mount: `/brain`, writable by explicit container UID/GID `10001:10001`
 
 Coolify must route the web domain to service `web:80` and the API domain to `api:3000`. Production Compose uses only internal `expose`; host ports exist only in `compose.local.yaml`.
 
@@ -76,6 +79,12 @@ These must be independent random values and must never be committed to Git or co
 Migrations run before API startup under a PostgreSQL advisory lock. Applied migration checksums are immutable. The scanner reads supported audio recursively without following directory symlinks. Unchanged files skip metadata parsing; missing files remain in the catalog with `available = false` rather than being deleted.
 
 Streaming resolves only available tracks, canonicalizes the physical path, verifies containment in the configured library root, and supports full, open-ended, suffix, and bounded byte ranges. Multiple ranges are intentionally unsupported.
+
+## Obsidian synchronization
+
+`POST /brain/sync` requires both the access code and JWT. It reads the available catalog from PostgreSQL and writes stable, linked notes under `Tracks`, `Artists`, `Albums`, and `Genres`. Managed metadata is regenerated; text inside the explicit user-editable delimiters is preserved. Writes use exclusive temporary files and atomic rename, and symlink/path escapes are rejected.
+
+The persistent server vault is separate from Coolify's source checkout. Automatic Git commit/push of server-generated notes is not implemented; add it later as an external, least-privilege operation rather than embedding a GitHub write token in the API.
 
 ## Web behavior
 
@@ -114,8 +123,9 @@ Before handoff, the backend passed strict TypeScript, production build, and 82 a
 - [ ] Add album, artist, and genre detail endpoints.
 - [ ] Add scanner status/history UI and scheduled scans.
 - [ ] Improve moved-file identity detection while handling exact duplicate files intentionally.
-- [ ] Build the Obsidian synchronization contract using stable `track_id` values.
-- [ ] Define conflict handling: scanner owns technical metadata; Obsidian owns editorial tags and relationships.
+- [x] Build the initial PostgreSQL-to-Obsidian export contract using stable track/entity IDs.
+- [ ] Add bidirectional editorial import with explicit conflict handling: scanner owns technical metadata; Obsidian owns editorial tags, notes, and relationships.
+- [ ] Add external least-privilege Git synchronization for the persistent server vault.
 
 ### Upload workflow
 

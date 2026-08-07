@@ -2,6 +2,7 @@ import { buildApp } from './app.js';
 import { AuthService } from './application/auth-service.js';
 import { CatalogQueryService } from './application/catalog-query.js';
 import { MusicScanner } from './application/music-scanner.js';
+import { SyncObsidianCatalogService } from './application/obsidian/sync-catalog.js';
 import { TrackStreamingService } from './application/track-streaming-service.js';
 import { ArgonPasswordHasher } from './infrastructure/auth/argon-password-hasher.js';
 import { JwtTokenService } from './infrastructure/auth/jwt-token-service.js';
@@ -12,6 +13,8 @@ import { runMigrations } from './infrastructure/database/migrate.js';
 import { PostgresDatabase } from './infrastructure/database/postgres-database.js';
 import { FilesystemAudioDiscovery } from './infrastructure/scanner/filesystem-audio-discovery.js';
 import { MusicMetadataReader } from './infrastructure/scanner/music-metadata-reader.js';
+import { FilesystemObsidianVaultExporter } from './infrastructure/obsidian/filesystem-vault-exporter.js';
+import { PostgresObsidianCatalogSource } from './infrastructure/obsidian/postgres-obsidian-catalog-source.js';
 import { PostgresMusicScanRepository } from './infrastructure/scanner/postgres-music-scan-repository.js';
 import { SupportedAudioMimeTypes } from './infrastructure/streaming/audio-mime-types.js';
 import { NodeTrackFileSystem } from './infrastructure/streaming/node-track-file-system.js';
@@ -43,6 +46,10 @@ async function start(): Promise<void> {
   const catalog = new CatalogQueryService(
     new PostgresCatalogRepository(database.client),
   );
+  const obsidianSync = new SyncObsidianCatalogService(
+    new PostgresObsidianCatalogSource(database.client),
+    new FilesystemObsidianVaultExporter(config.OBSIDIAN_PATH),
+  );
   const scanner = new MusicScanner(
     new PostgresMusicScanRepository(database.client),
     new FilesystemAudioDiscovery(),
@@ -59,6 +66,7 @@ async function start(): Promise<void> {
     catalog,
     config,
     databaseHealth: database,
+    obsidianSync,
     scanner,
     streaming,
     tokenService,

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { ApiError, listTracks, scanLibrary } from '../lib/api';
+import { ApiError, listTracks, scanLibrary, syncObsidianBrain } from '../lib/api';
 import { formatDuration } from '../lib/format';
 import type { ThemeDefinition } from '../lib/themes';
 import type { Track, User } from '../lib/types';
@@ -23,6 +23,7 @@ export function Library({ user, theme, onLogout, onPlay, currentTrack }: Library
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [syncingBrain, setSyncingBrain] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
   const load = useCallback(async (search: string, signal?: AbortSignal) => {
@@ -63,7 +64,18 @@ export function Library({ user, theme, onLogout, onPlay, currentTrack }: Library
     } finally { setScanning(false); }
   }
 
-  const controls = <LibraryControls query={query} onQuery={setQuery} scanning={scanning} onScan={() => void scan()} />;
+  async function syncBrain() {
+    setSyncingBrain(true); setNotice(null);
+    try {
+      const result = await syncObsidianBrain();
+      const count = Object.values(result.counts).reduce((sum, value) => sum + value, 0);
+      setNotice(`Obsidian sync: ${count} notes written, ${result.errors.length} failed.`);
+    } catch (caught: unknown) {
+      setNotice(caught instanceof ApiError ? caught.message : 'Obsidian sync could not be completed.');
+    } finally { setSyncingBrain(false); }
+  }
+
+  const controls = <LibraryControls query={query} onQuery={setQuery} scanning={scanning} syncingBrain={syncingBrain} onScan={() => void scan()} onSyncBrain={() => void syncBrain()} />;
   const results = loading ? <TrackSkeleton /> : error !== null
     ? <State title="Library unavailable" copy={error} action={<button className="secondary" onClick={() => void load(query)}>Try again</button>} />
     : tracks.length === 0
@@ -97,8 +109,8 @@ function ThemeContent({ theme, tracks, currentTrack, onPlay }: { readonly theme:
   return <div className="track-table" role="list">{tracks.map((track, index) => <TrackRow key={track.id} track={track} index={index} onPlay={onPlay} active={track.id === currentTrack?.id} />)}</div>;
 }
 
-function LibraryControls({ query, onQuery, scanning, onScan }: { readonly query: string; readonly onQuery: (query: string) => void; readonly scanning: boolean; readonly onScan: () => void }) {
-  return <div className="library-controls"><label><span className="sr-only">Search your library</span><b aria-hidden="true">⌕</b><input type="search" value={query} onChange={(event) => onQuery(event.target.value)} placeholder="Search your library" /></label><button className="scan-button" type="button" disabled={scanning} onClick={onScan}>{scanning ? 'Scanning…' : '↻ Scan'}</button></div>;
+function LibraryControls({ query, onQuery, scanning, syncingBrain, onScan, onSyncBrain }: { readonly query: string; readonly onQuery: (query: string) => void; readonly scanning: boolean; readonly syncingBrain: boolean; readonly onScan: () => void; readonly onSyncBrain: () => void }) {
+  return <div className="library-controls"><label><span className="sr-only">Search your library</span><b aria-hidden="true">⌕</b><input type="search" value={query} onChange={(event) => onQuery(event.target.value)} placeholder="Search your library" /></label><button className="scan-button" type="button" disabled={scanning} onClick={onScan}>{scanning ? 'Scanning…' : '↻ Scan'}</button><button className="brain-button" type="button" disabled={syncingBrain} onClick={onSyncBrain}>{syncingBrain ? 'Syncing…' : '◇ Obsidian'}</button></div>;
 }
 
 function TrackRow({ track, index, onPlay, active }: { readonly track: Track; readonly index: number; readonly onPlay: (track: Track) => void; readonly active: boolean }) {

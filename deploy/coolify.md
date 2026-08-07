@@ -9,9 +9,18 @@ Monopol Musix Vault uses the root `compose.yaml` as its Coolify deployment defin
 3. Configure `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `AUTH_SECRET`, and `API_ACCESS_CODE` as runtime environment variables.
 4. Generate independent values for `POSTGRES_PASSWORD`, `AUTH_SECRET`, and `API_ACCESS_CODE` with a password manager and store them only in Coolify's secret environment configuration. `API_ACCESS_CODE` must contain at least 16 characters and must not equal either other secret.
 5. Create `/srv/monopol-musix-vault/music` on the Coolify host and grant the container read access. Compose mounts this fixed path read-only at `/music`; a fixed source is required because Coolify rejects variable interpolation in volume definitions.
-6. Attach persistent storage to the `postgres_data` volume.
-7. Assign the public domain to the `web` service on its internal port `80`. Do not publish host ports; Coolify's proxy reaches the service through its Docker network, allowing zero-downtime replacements. The web container proxies same-origin `/api` requests to the private API service.
-8. Deploy and wait for PostgreSQL, API, and web health checks to pass.
+6. Create the persistent Obsidian vault and grant only the API container user write access:
+
+   ```shell
+   sudo mkdir -p /srv/monopol-musix-vault/brain
+   sudo chown -R 10001:10001 /srv/monopol-musix-vault/brain
+   sudo chmod -R u+rwX,go-rwx /srv/monopol-musix-vault/brain
+   ```
+
+   Compose mounts it at `/brain`. Do not use Coolify's temporary source checkout as the writable vault.
+7. Attach persistent storage to the `postgres_data` volume.
+8. Assign the public domain to the `web` service on its internal port `80`. Do not publish host ports; Coolify's proxy reaches the service through its Docker network, allowing zero-downtime replacements. The web container proxies same-origin `/api` requests to the private API service.
+9. Deploy and wait for PostgreSQL, API, and web health checks to pass.
 
 No database port should be exposed publicly. Route normal users to the `web` service; direct API publication is optional for future native clients and should use a separate API hostname when enabled.
 

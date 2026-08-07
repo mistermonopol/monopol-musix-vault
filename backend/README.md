@@ -24,6 +24,12 @@ The first installation creates its administrator through `POST /auth/bootstrap`.
 
 Access tokens are short-lived HS256 JWTs intended for the `Authorization: Bearer` header. Refresh tokens are opaque random values; only their SHA-256 hashes are persisted. Refresh rotates and revokes the previous session atomically. Configure a unique `AUTH_SECRET` of at least 32 random characters in the deployment secret store.
 
+## Obsidian catalog sync
+
+`POST /brain/sync` exports the available PostgreSQL catalog into the writable vault mount configured by `OBSIDIAN_PATH`. It creates relationship-linked notes under `Tracks`, `Artists`, `Albums`, and `Genres`, preserves text inside the generated user-editable delimiters, rejects symlink escapes, and replaces managed content atomically. The endpoint requires both `X-Access-Code` and a valid bearer token.
+
+The exporter does not run Git commands or push credentials. Synchronizing the persistent server vault to GitHub remains an external operational responsibility.
+
 ## HTTP endpoints
 
 - `GET /health` reports process liveness without checking external dependencies.
@@ -34,6 +40,7 @@ Access tokens are short-lived HS256 JWTs intended for the `Authorization: Bearer
 - `POST /auth/logout` revokes a refresh token.
 - `GET /auth/me` returns the user associated with a valid bearer access token.
 - `POST /library/scan` performs an authenticated incremental scan of the configured library.
+- `POST /brain/sync` writes catalog notes and relationships into the Obsidian vault.
 - `GET /tracks/:trackId/stream` streams an available track and supports one RFC 9110 byte range.
 - `HEAD /tracks/:trackId/stream` returns stream metadata without opening the audio file.
 
