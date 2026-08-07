@@ -39,16 +39,17 @@ Backend and clients share no source code. They communicate through the HTTP API.
 9. Selectable screenshot-inspired UI themes at `/spotify`, `/soundcloud`, `/applemusic`, and `/amazonmusic`
 10. API access-code boundary described below
 11. PostgreSQL-to-Obsidian export with stable IDs, linked entity notes, preserved user regions, atomic writes, and a web sync button
+12. Flutter mobile/desktop scaffold for Android, iOS, Windows, macOS, and Linux with API client, access-code login/bootstrap, secure refresh-session restoration, and adaptive Material 3 shell
 
 ## Current repository state
 
 Latest pushed commit on `main`:
 
 ```text
-d5fca22 Connect catalog to Obsidian vault
+0c6817e Update agent handoff
 ```
 
-The implementation, documentation, and tests are committed and pushed. The temporary E2E Compose stack, volumes, fixture music, generated test vault, and temporary environment files were removed after validation. The only known remaining local working-tree change is the user's `musix-vault-brain/.obsidian/workspace.json`; preserve it and do not stage, revert, overwrite, or commit it without explicit permission.
+The backend, web, Obsidian synchronization, and deployment-resilience implementation is committed and pushed. Flutter development is now active under `frontend/`. The only user-owned working-tree change is `musix-vault-brain/.obsidian/workspace.json`; preserve it and do not stage, revert, overwrite, or commit it without explicit permission.
 
 ## Current deployment
 
@@ -104,9 +105,15 @@ The web container no longer depends on API health during startup. nginx uses Doc
 
 Only playback is expected to be functional across all theme designs at this stage. Other visible navigation items are presentation placeholders until their corresponding milestones are implemented.
 
+## Flutter client
+
+`frontend/` is a native Flutter client targeting Android, iOS, Windows, macOS, and Linux; browser support remains in `web/`. The API endpoint defaults to `https://api.vault.monopol-ai.de` and can be overridden with `--dart-define=MMV_API_URL=...`. Never compile the access code into the application.
+
+The first Flutter slice implements login and first-admin bootstrap, sends `X-Access-Code`, restores sessions by rotating the refresh token, keeps the short-lived access token in memory, and stores the access code and refresh token through platform secure storage. Library loading and playback are not implemented yet. Windows plugin builds require Windows Developer Mode because Flutter needs symlink support.
+
 ## Validation baseline
 
-Before handoff, the backend passed strict TypeScript, production build, and 87 automated tests. The web app passed strict TypeScript, production build, and 19 automated tests. Production Compose configuration validation also passed. Full container E2E covered PostgreSQL migration, auth rotation, real WAV scanning, PostgreSQL-to-Obsidian export, access-code rejection and acceptance, cookie-authenticated full/ranged streaming, web availability while the API was stopped, sanitized proxy failure responses, API proxy recovery, nginx health, and direct theme-route reloads.
+Before handoff, the backend passed strict TypeScript, production build, and 87 automated tests. The web app passed strict TypeScript, production build, and 19 automated tests. The Flutter client passed `flutter analyze` with no issues and all 3 initial tests passed. Production Compose configuration validation also passed. Full container E2E covered PostgreSQL migration, auth rotation, real WAV scanning, PostgreSQL-to-Obsidian export, access-code rejection and acceptance, cookie-authenticated full/ranged streaming, web availability while the API was stopped, sanitized proxy failure responses, API proxy recovery, nginx health, and direct theme-route reloads.
 
 ## Prioritized TODO
 
@@ -159,7 +166,9 @@ Before handoff, the backend passed strict TypeScript, production build, and 87 a
 
 ### Product milestones
 
-- [ ] Flutter application scaffold and API client
+- [x] Flutter application scaffold and initial authentication API client
+- [ ] Add authenticated Flutter request retry, logout API call, and broader controller/widget tests
+- [ ] Add Flutter catalog query, search, pagination, and adaptive library UI
 - [ ] Flutter audio player with authenticated range streaming
 - [ ] Full library UI and artwork
 - [ ] Search refinements
@@ -173,9 +182,11 @@ Before handoff, the backend passed strict TypeScript, production build, and 87 a
 
 1. Read `README.md`, `docs/architecture.md`, `backend/README.md`, `web/README.md`, and `deploy/coolify.md`.
 2. Read this handoff and inspect `git status` before editing. Preserve user changes, especially Obsidian workspace state.
-3. Confirm the current branch contains `d5fca22` and that only the user's workspace state is locally modified.
+3. Inspect the latest commit and confirm that only the user's workspace state is locally modified before editing.
 4. Confirm Coolify has `API_ACCESS_CODE`, `AUTH_SECRET`, and `POSTGRES_PASSWORD` without printing their values, and confirm the host brain directory has UID/GID `10001:10001` ownership.
 5. Redeploy and execute the immediate deployment checks above before starting another feature.
-6. Run backend typecheck/tests/build, then web typecheck/tests/build.
-7. Work on one milestone at a time; container-test behavior changes before committing.
-8. Commit and push only after validation passes.
+6. For Flutter work, run `dart format --set-exit-if-changed lib test`, `flutter analyze`, and `flutter test` from `frontend/`.
+7. Enable Windows Developer Mode before attempting a Windows plugin build.
+8. Run backend typecheck/tests/build and web typecheck/tests/build when changing shared API behavior.
+9. Work on one milestone at a time; container-test behavior changes before committing.
+10. Commit and push only after validation passes.
