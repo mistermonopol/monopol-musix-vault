@@ -1,6 +1,9 @@
 import { z } from 'zod';
 
 const environmentSchema = z.object({
+  AUTH_ACCESS_TOKEN_MINUTES: z.coerce.number().int().min(1).max(60).default(15),
+  AUTH_REFRESH_TOKEN_DAYS: z.coerce.number().int().min(1).max(90).default(30),
+  AUTH_SECRET: z.string().min(32),
   DB_HOST: z.string().min(1).default('127.0.0.1'),
   DB_MAX_CONNECTIONS: z.coerce.number().int().min(1).max(100).default(10),
   DB_NAME: z.string().min(1).default('musix_vault'),
@@ -16,6 +19,12 @@ const environmentSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65_535).default(3000),
 });
 
+export interface AuthConfig {
+  readonly accessTokenMinutes: number;
+  readonly refreshTokenDays: number;
+  readonly secret: string;
+}
+
 export interface DatabaseConfig {
   readonly database: string;
   readonly host: string;
@@ -27,6 +36,7 @@ export interface DatabaseConfig {
 }
 
 export interface AppConfig {
+  readonly auth: AuthConfig;
   readonly database: DatabaseConfig;
   readonly HOST: string;
   readonly LOG_LEVEL: z.infer<typeof environmentSchema>['LOG_LEVEL'];
@@ -42,6 +52,11 @@ export function loadConfig(environment: NodeJS.ProcessEnv): AppConfig {
   }
 
   return {
+    auth: {
+      accessTokenMinutes: result.data.AUTH_ACCESS_TOKEN_MINUTES,
+      refreshTokenDays: result.data.AUTH_REFRESH_TOKEN_DAYS,
+      secret: result.data.AUTH_SECRET,
+    },
     database: {
       database: result.data.DB_NAME,
       host: result.data.DB_HOST,

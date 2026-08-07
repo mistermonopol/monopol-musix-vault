@@ -9,6 +9,9 @@ services:
       postgres:
         condition: service_healthy
     environment:
+      AUTH_ACCESS_TOKEN_MINUTES: ${AUTH_ACCESS_TOKEN_MINUTES:-15}
+      AUTH_REFRESH_TOKEN_DAYS: ${AUTH_REFRESH_TOKEN_DAYS:-30}
+      AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET in .env}
       DB_HOST: postgres
       DB_MAX_CONNECTIONS: ${DB_MAX_CONNECTIONS:-10}
       DB_NAME: ${POSTGRES_DB:-musix_vault}

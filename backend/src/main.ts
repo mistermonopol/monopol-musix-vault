@@ -1,4 +1,8 @@
 import { buildApp } from './app.js';
+import { AuthService } from './application/auth-service.js';
+import { ArgonPasswordHasher } from './infrastructure/auth/argon-password-hasher.js';
+import { JwtTokenService } from './infrastructure/auth/jwt-token-service.js';
+import { PostgresAuthRepository } from './infrastructure/auth/postgres-auth-repository.js';
 import { loadConfig } from './infrastructure/config.js';
 import { runMigrations } from './infrastructure/database/migrate.js';
 import { PostgresDatabase } from './infrastructure/database/postgres-database.js';
@@ -14,7 +18,20 @@ async function start(): Promise<void> {
     throw error;
   }
 
-  const app = await buildApp({ config, databaseHealth: database });
+  const authRepository = new PostgresAuthRepository(database.client);
+  const tokenService = new JwtTokenService(config.auth);
+  const authService = new AuthService(
+    authRepository,
+    new ArgonPasswordHasher(),
+    tokenService,
+  );
+  const app = await buildApp({
+    authRepository,
+    authService,
+    config,
+    databaseHealth: database,
+    tokenService,
+  });
 
   const shutdown = async (signal: NodeJS.Signals): Promise<void> => {
     app.log.info({ signal }, 'Shutdown requested');

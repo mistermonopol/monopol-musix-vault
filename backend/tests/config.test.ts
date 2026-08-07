@@ -4,7 +4,17 @@ import { loadConfig } from '../src/infrastructure/config.js';
 
 describe('loadConfig', () => {
   it('provides safe development defaults', () => {
-    expect(loadConfig({ DB_PASSWORD: 'secret' })).toEqual({
+    expect(
+      loadConfig({
+        AUTH_SECRET: 'test-secret-that-is-at-least-32-characters',
+        DB_PASSWORD: 'secret',
+      }),
+    ).toEqual({
+      auth: {
+        accessTokenMinutes: 15,
+        refreshTokenDays: 30,
+        secret: 'test-secret-that-is-at-least-32-characters',
+      },
       database: {
         database: 'musix_vault',
         host: '127.0.0.1',
@@ -22,7 +32,11 @@ describe('loadConfig', () => {
   });
 
   it('rejects an invalid port', () => {
-    expect(() => loadConfig({ DB_PASSWORD: 'secret', PORT: '70000' })).toThrow(
+    expect(() => loadConfig({
+            AUTH_SECRET: 'test-secret-that-is-at-least-32-characters',
+            DB_PASSWORD: 'secret',
+            PORT: '70000',
+          })).toThrow(
       'Too big',
     );
   });
