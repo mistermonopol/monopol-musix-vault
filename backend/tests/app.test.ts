@@ -28,7 +28,7 @@ const config: AppConfig = {
 
 const authDependencies: Pick<
   BuildAppOptions,
-  'authRepository' | 'authService' | 'scanner' | 'streaming' | 'tokenService'
+  'authRepository' | 'authService' | 'catalog' | 'scanner' | 'streaming' | 'tokenService'
 > = {
   authRepository: {
     bootstrapAdmin: async () => null,
@@ -49,6 +49,9 @@ const authDependencies: Pick<
     refresh: async () => {
       throw new Error('Not used');
     },
+  },
+  catalog: {
+    execute: async () => ({ items: [], page: 1, pageSize: 50, total: 0 }),
   },
   scanner: {
     scan: async () => ({

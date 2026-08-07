@@ -9,6 +9,7 @@ import { ZodError } from 'zod';
 import { AuthError } from './application/auth-errors.js';
 import type { AuthRepository, TokenService } from './application/auth-ports.js';
 import type { AuthOperations } from './application/auth-service.js';
+import type { CatalogQueryOperations } from './application/catalog-query.js';
 import type { DatabaseHealth } from './application/database-health.js';
 import { GetHealth } from './application/get-health.js';
 import type { MusicScannerOperations } from './application/music-scanner.js';
@@ -16,6 +17,7 @@ import type { TrackStreamingOperations } from './application/track-streaming-ser
 import type { AppConfig } from './infrastructure/config.js';
 import { SystemClock } from './infrastructure/system-clock.js';
 import { registerAuthRoutes } from './interfaces/http/auth-routes.js';
+import { registerCatalogRoutes } from './interfaces/http/catalog-routes.js';
 import { registerHealthRoutes } from './interfaces/http/health-routes.js';
 import { registerLibraryRoutes } from './interfaces/http/library-routes.js';
 import { registerStreamingRoutes } from './interfaces/http/streaming-routes.js';
@@ -23,6 +25,7 @@ import { registerStreamingRoutes } from './interfaces/http/streaming-routes.js';
 export interface BuildAppOptions {
   readonly authRepository: AuthRepository;
   readonly authService: AuthOperations;
+  readonly catalog: CatalogQueryOperations;
   readonly config: AppConfig;
   readonly databaseHealth: DatabaseHealth;
   readonly logger?: FastifyServerOptions['logger'];
@@ -87,6 +90,10 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   await app.register(registerAuthRoutes, {
     authRepository: options.authRepository,
     authService: options.authService,
+    tokenService: options.tokenService,
+  });
+  await app.register(registerCatalogRoutes, {
+    catalog: options.catalog,
     tokenService: options.tokenService,
   });
   await app.register(registerLibraryRoutes, {

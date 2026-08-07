@@ -1,10 +1,12 @@
 import { buildApp } from './app.js';
 import { AuthService } from './application/auth-service.js';
+import { CatalogQueryService } from './application/catalog-query.js';
 import { MusicScanner } from './application/music-scanner.js';
 import { TrackStreamingService } from './application/track-streaming-service.js';
 import { ArgonPasswordHasher } from './infrastructure/auth/argon-password-hasher.js';
 import { JwtTokenService } from './infrastructure/auth/jwt-token-service.js';
 import { PostgresAuthRepository } from './infrastructure/auth/postgres-auth-repository.js';
+import { PostgresCatalogRepository } from './infrastructure/catalog/postgres-catalog-repository.js';
 import { loadConfig } from './infrastructure/config.js';
 import { runMigrations } from './infrastructure/database/migrate.js';
 import { PostgresDatabase } from './infrastructure/database/postgres-database.js';
@@ -38,6 +40,9 @@ async function start(): Promise<void> {
     new ArgonPasswordHasher(),
     tokenService,
   );
+  const catalog = new CatalogQueryService(
+    new PostgresCatalogRepository(database.client),
+  );
   const scanner = new MusicScanner(
     new PostgresMusicScanRepository(database.client),
     new FilesystemAudioDiscovery(),
@@ -51,6 +56,7 @@ async function start(): Promise<void> {
   const app = await buildApp({
     authRepository,
     authService,
+    catalog,
     config,
     databaseHealth: database,
     scanner,
