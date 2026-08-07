@@ -8,7 +8,7 @@ Monopol Musix Vault uses the root `compose.yaml` as its Coolify deployment defin
 2. Select the `main` branch and use `/compose.yaml` as the Compose location.
 3. Configure `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `AUTH_SECRET` as runtime environment variables.
 4. Generate `POSTGRES_PASSWORD` and `AUTH_SECRET` with a password manager and store them only in Coolify's secret environment configuration.
-5. Set `MUSIC_PATH` to the music directory on the Coolify host. Compose mounts it read-only at `/music` inside the API container.
+5. Create `/srv/monopol-musix-vault/music` on the Coolify host and grant the container read access. Compose mounts this fixed path read-only at `/music`; a fixed source is required because Coolify rejects variable interpolation in volume definitions.
 6. Attach persistent storage to the `postgres_data` volume.
 7. Deploy and wait for both PostgreSQL and API health checks to pass.
 

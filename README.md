@@ -28,4 +28,4 @@ Application components are added incrementally and validated at each milestone.
 
 ## Local infrastructure
 
-Copy `.env.example` to `.env`, set a strong PostgreSQL password, and start the local infrastructure with `docker compose up -d --wait`. See `deploy/coolify.md` for production deployment guidance.
+Copy `.env.example` to `.env`, set strong authentication and PostgreSQL secrets, and start the infrastructure with `docker compose up -d --wait`. The Compose stack expects a readable music library at `/srv/monopol-musix-vault/music` on the Docker host. See `deploy/coolify.md` for production deployment guidance.
