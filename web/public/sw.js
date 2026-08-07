@@ -1,21 +1,11 @@
-let accessToken = null;
 let tokenVersion = 0;
 const tokenWaiters = new Set();
 
 self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', (event) => event.waitUntil((async () => {
-  await self.clients.claim();
-  await requestTokenFromClients();
-})()));
+self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
 
 self.addEventListener('message', (event) => {
-  if (event.data?.type === 'SET_AUTH_TOKEN' && typeof event.data.token === 'string') {
-    accessToken = event.data.token;
-    tokenVersion += 1;
-    resolveTokenWaiters();
-  }
-  if (event.data?.type === 'CLEAR_AUTH_TOKEN') {
-    accessToken = null;
+  if (event.data?.type === 'SET_AUTH_TOKEN' || event.data?.type === 'CLEAR_AUTH_TOKEN') {
     tokenVersion += 1;
     resolveTokenWaiters();
   }
@@ -28,35 +18,21 @@ self.addEventListener('fetch', (event) => {
 });
 
 async function authenticatedTrackRequest(request) {
-  if (accessToken === null) {
-    const previousVersion = tokenVersion;
-    await requestTokenFromClients();
-    await waitForTokenUpdate(previousVersion);
-  }
-
-  const firstResponse = await fetchWithCurrentToken(request);
+  const firstResponse = await fetch(request.clone());
   if (firstResponse.status !== 401) return firstResponse;
 
   await firstResponse.body?.cancel();
   const previousVersion = tokenVersion;
-  await requestTokenFromClients(true);
+  await requestRefreshFromClients();
   const refreshed = await waitForTokenUpdate(previousVersion);
-  if (!refreshed || accessToken === null) return firstResponse;
+  if (!refreshed) return new Response(null, { status: 401 });
 
-  return fetchWithCurrentToken(request);
+  return fetch(request.clone());
 }
 
-function fetchWithCurrentToken(request) {
-  const headers = new Headers(request.headers);
-  if (accessToken !== null) headers.set('Authorization', `Bearer ${accessToken}`);
-  return fetch(new Request(request, { headers }));
-}
-
-async function requestTokenFromClients(refresh = false) {
+async function requestRefreshFromClients() {
   const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-  clients.forEach((client) => client.postMessage({
-    type: refresh ? 'AUTH_REQUIRED' : 'AUTH_TOKEN_REQUEST',
-  }));
+  clients.forEach((client) => client.postMessage({ type: 'AUTH_REQUIRED' }));
 }
 
 function waitForTokenUpdate(previousVersion) {

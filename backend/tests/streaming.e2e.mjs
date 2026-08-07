@@ -8,38 +8,40 @@ const bootstrap = await fetch(`${baseUrl}/auth/bootstrap`, {
   method: 'POST',
 });
 assert.equal(bootstrap.status, 201);
-const { accessToken } = await bootstrap.json();
+await bootstrap.json();
+const streamCookie = bootstrap.headers.get('set-cookie')?.split(';', 1)[0];
+assert.equal(typeof streamCookie, 'string');
 const url = `${baseUrl}/tracks/${trackId}/stream`;
-const authorization = { authorization: `Bearer ${accessToken}` };
+const cookieHeader = { cookie: streamCookie };
 
 assert.equal((await fetch(url)).status, 401);
 
-const head = await fetch(url, { headers: authorization, method: 'HEAD' });
+const head = await fetch(url, { headers: cookieHeader, method: 'HEAD' });
 assert.equal(head.status, 200);
 assert.equal(head.headers.get('accept-ranges'), 'bytes');
 assert.equal(head.headers.get('content-type'), 'audio/wav');
 assert.equal(head.headers.get('content-length'), '8044');
 
-const full = await fetch(url, { headers: authorization });
+const full = await fetch(url, { headers: cookieHeader });
 assert.equal(full.status, 200);
 assert.equal((await full.arrayBuffer()).byteLength, 8044);
 
-const partial = await fetch(url, { headers: { ...authorization, range: 'bytes=0-9' } });
+const partial = await fetch(url, { headers: { ...cookieHeader, range: 'bytes=0-9' } });
 assert.equal(partial.status, 206);
 assert.equal(partial.headers.get('content-range'), 'bytes 0-9/8044');
 assert.equal(partial.headers.get('content-length'), '10');
 assert.equal((await partial.arrayBuffer()).byteLength, 10);
 
-const suffix = await fetch(url, { headers: { ...authorization, range: 'bytes=-8' } });
+const suffix = await fetch(url, { headers: { ...cookieHeader, range: 'bytes=-8' } });
 assert.equal(suffix.status, 206);
 assert.equal(suffix.headers.get('content-range'), 'bytes 8036-8043/8044');
 assert.equal((await suffix.arrayBuffer()).byteLength, 8);
 
-const malformed = await fetch(url, { headers: { ...authorization, range: 'items=0-1' } });
+const malformed = await fetch(url, { headers: { ...cookieHeader, range: 'items=0-1' } });
 assert.equal(malformed.status, 400);
 
 const unsatisfiable = await fetch(url, {
-  headers: { ...authorization, range: 'bytes=9000-' },
+  headers: { ...cookieHeader, range: 'bytes=9000-' },
 });
 assert.equal(unsatisfiable.status, 416);
 assert.equal(unsatisfiable.headers.get('content-range'), 'bytes */8044');

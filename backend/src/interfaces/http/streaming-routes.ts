@@ -36,7 +36,7 @@ export async function registerStreamingRoutes(
   dependencies: StreamingRoutesDependencies,
 ): Promise<void> {
   app.head('/tracks/:trackId/stream', async (request, reply) => {
-    await authenticate(request, dependencies.tokenService);
+    await authenticate(request, dependencies.tokenService, true);
     const { trackId } = paramsSchema.parse(request.params);
     try {
       const file = await dependencies.streaming.resolve(trackId);
@@ -48,7 +48,7 @@ export async function registerStreamingRoutes(
   });
 
   app.get('/tracks/:trackId/stream', async (request, reply) => {
-    await authenticate(request, dependencies.tokenService);
+    await authenticate(request, dependencies.tokenService, true);
     const { trackId } = paramsSchema.parse(request.params);
     try {
       const opened = await dependencies.streaming.open(trackId, request.headers.range);
