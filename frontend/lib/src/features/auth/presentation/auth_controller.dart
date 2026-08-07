@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../../../core/api/api_client.dart';
 import '../data/session_store.dart';
 import '../domain/auth_session.dart';
+import '../../library/domain/catalog_track.dart';
 
 enum AuthStatus { restoring, signedOut, authenticating, signedIn }
 
@@ -14,6 +15,7 @@ final class AuthController extends ChangeNotifier {
   AuthStatus status = AuthStatus.restoring;
   AuthSession? session;
   String? errorMessage;
+  String? _accessCode;
 
   Future<void> restore() async {
     final credentials = await store.read();
@@ -27,6 +29,7 @@ final class AuthController extends ChangeNotifier {
         refreshToken: credentials.refreshToken,
         accessCode: credentials.accessCode,
       );
+      _accessCode = credentials.accessCode;
       await store.write(
         StoredCredentials(
           accessCode: credentials.accessCode,
@@ -57,6 +60,7 @@ final class AuthController extends ChangeNotifier {
         accessCode: accessCode,
         bootstrap: bootstrap,
       );
+      _accessCode = accessCode;
       await store.write(
         StoredCredentials(
           accessCode: accessCode,
@@ -74,8 +78,22 @@ final class AuthController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<CatalogPage> listTracks({String search = ''}) {
+    final currentSession = session;
+    final currentAccessCode = _accessCode;
+    if (currentSession == null || currentAccessCode == null) {
+      throw const ApiException('Session abgelaufen.', statusCode: 401);
+    }
+    return api.listTracks(
+      accessCode: currentAccessCode,
+      accessToken: currentSession.accessToken,
+      search: search,
+    );
+  }
+
   Future<void> signOut() async {
     session = null;
+    _accessCode = null;
     errorMessage = null;
     await store.clear();
     status = AuthStatus.signedOut;

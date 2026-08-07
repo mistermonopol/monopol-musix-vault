@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../../features/auth/domain/auth_session.dart';
+import '../../features/library/domain/catalog_track.dart';
 
 final class ApiException implements Exception {
   const ApiException(this.message, {required this.statusCode, this.code});
@@ -48,11 +49,33 @@ final class ApiClient {
     return AuthSession.fromJson(_decode(response));
   }
 
+  Future<CatalogPage> listTracks({
+    required String accessCode,
+    required String accessToken,
+    String search = '',
+    int limit = 100,
+    int offset = 0,
+  }) async {
+    final uri = _resolve('/library/tracks').replace(
+      queryParameters: {
+        'search': search.trim(),
+        'limit': '$limit',
+        'offset': '$offset',
+      },
+    );
+    final response = await _httpClient.get(
+      uri,
+      headers: _headers(accessCode, accessToken: accessToken),
+    );
+    return CatalogPage.fromJson(_decode(response));
+  }
+
   Uri _resolve(String path) => baseUrl.resolve(path);
 
-  Map<String, String> _headers(String accessCode) => {
+  Map<String, String> _headers(String accessCode, {String? accessToken}) => {
     'Content-Type': 'application/json',
     'X-Access-Code': accessCode,
+    if (accessToken != null) 'Authorization': 'Bearer $accessToken',
   };
 
   Map<String, Object?> _decode(http.Response response) {

@@ -43,6 +43,49 @@ void main() {
     expect(session.user.role, 'admin');
   });
 
+  test('lists tracks with both authentication layers', () async {
+    final client = ApiClient(
+      baseUrl: Uri.parse('https://api.example.test'),
+      httpClient: MockClient((request) async {
+        expect(request.url.path, '/library/tracks');
+        expect(request.url.queryParameters['search'], 'Artist');
+        expect(request.headers['X-Access-Code'], 'private-access-code');
+        expect(request.headers['Authorization'], 'Bearer access-token');
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {
+                'id': 'track-id',
+                'title': 'Track title',
+                'artists': [
+                  {'id': 'artist-id', 'name': 'Artist'},
+                ],
+                'album': {'id': 'album-id', 'title': 'Album'},
+                'durationSeconds': 185.4,
+                'year': 2026,
+              },
+            ],
+            'page': 1,
+            'pageSize': 100,
+            'total': 1,
+          }),
+          200,
+        );
+      }),
+    );
+
+    final page = await client.listTracks(
+      accessCode: 'private-access-code',
+      accessToken: 'access-token',
+      search: 'Artist',
+    );
+
+    expect(page.total, 1);
+    expect(page.items.single.title, 'Track title');
+    expect(page.items.single.artistLabel, 'Artist');
+    expect(page.items.single.album, 'Album');
+  });
+
   test('API errors expose status and server code', () async {
     final client = ApiClient(
       baseUrl: Uri.parse('https://api.example.test'),

@@ -11,8 +11,9 @@ Native mobile and desktop client for Android, iOS, Windows, macOS, and Linux. Th
 - Rotating refresh-session restoration
 - Refresh token and access code stored through platform secure storage
 - In-memory access token
+- Authenticated catalog loading with title, artist, album, duration, search, and pull-to-refresh
 
-The library and audio player are the next milestone.
+The authenticated audio player is the next milestone.
 
 ## Run
 
