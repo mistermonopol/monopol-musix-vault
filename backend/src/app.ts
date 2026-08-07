@@ -4,6 +4,7 @@ import Fastify, {
   LogController,
 } from 'fastify';
 
+import type { DatabaseHealth } from './application/database-health.js';
 import { GetHealth } from './application/get-health.js';
 import type { AppConfig } from './infrastructure/config.js';
 import { SystemClock } from './infrastructure/system-clock.js';
@@ -11,6 +12,7 @@ import { registerHealthRoutes } from './interfaces/http/health-routes.js';
 
 export interface BuildAppOptions {
   readonly config: AppConfig;
+  readonly databaseHealth: DatabaseHealth;
   readonly logger?: FastifyServerOptions['logger'];
 }
 
@@ -47,7 +49,10 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   });
 
   const getHealth = new GetHealth(new SystemClock(), '0.1.0');
-  await app.register(registerHealthRoutes, { getHealth });
+  await app.register(registerHealthRoutes, {
+    databaseHealth: options.databaseHealth,
+    getHealth,
+  });
 
   return app;
 }

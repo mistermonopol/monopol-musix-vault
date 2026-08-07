@@ -1,6 +1,13 @@
 import { z } from 'zod';
 
 const environmentSchema = z.object({
+  DB_HOST: z.string().min(1).default('127.0.0.1'),
+  DB_MAX_CONNECTIONS: z.coerce.number().int().min(1).max(100).default(10),
+  DB_NAME: z.string().min(1).default('musix_vault'),
+  DB_PASSWORD: z.string().min(1),
+  DB_PORT: z.coerce.number().int().min(1).max(65_535).default(5432),
+  DB_SSL: z.stringbool().default(false),
+  DB_USER: z.string().min(1).default('musix_vault'),
   HOST: z.string().min(1).default('0.0.0.0'),
   LOG_LEVEL: z
     .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
@@ -9,7 +16,23 @@ const environmentSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65_535).default(3000),
 });
 
-export type AppConfig = z.infer<typeof environmentSchema>;
+export interface DatabaseConfig {
+  readonly database: string;
+  readonly host: string;
+  readonly maxConnections: number;
+  readonly password: string;
+  readonly port: number;
+  readonly ssl: boolean;
+  readonly user: string;
+}
+
+export interface AppConfig {
+  readonly database: DatabaseConfig;
+  readonly HOST: string;
+  readonly LOG_LEVEL: z.infer<typeof environmentSchema>['LOG_LEVEL'];
+  readonly NODE_ENV: z.infer<typeof environmentSchema>['NODE_ENV'];
+  readonly PORT: number;
+}
 
 export function loadConfig(environment: NodeJS.ProcessEnv): AppConfig {
   const result = environmentSchema.safeParse(environment);
@@ -18,5 +41,19 @@ export function loadConfig(environment: NodeJS.ProcessEnv): AppConfig {
     throw new Error(z.prettifyError(result.error));
   }
 
-  return result.data;
+  return {
+    database: {
+      database: result.data.DB_NAME,
+      host: result.data.DB_HOST,
+      maxConnections: result.data.DB_MAX_CONNECTIONS,
+      password: result.data.DB_PASSWORD,
+      port: result.data.DB_PORT,
+      ssl: result.data.DB_SSL,
+      user: result.data.DB_USER,
+    },
+    HOST: result.data.HOST,
+    LOG_LEVEL: result.data.LOG_LEVEL,
+    NODE_ENV: result.data.NODE_ENV,
+    PORT: result.data.PORT,
+  };
 }

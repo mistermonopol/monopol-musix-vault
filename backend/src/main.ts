@@ -1,13 +1,25 @@
 import { buildApp } from './app.js';
 import { loadConfig } from './infrastructure/config.js';
+import { runMigrations } from './infrastructure/database/migrate.js';
+import { PostgresDatabase } from './infrastructure/database/postgres-database.js';
 
 async function start(): Promise<void> {
   const config = loadConfig(process.env);
-  const app = await buildApp({ config });
+  const database = await PostgresDatabase.connect(config.database);
+
+  try {
+    await runMigrations(database.client, new URL('../migrations/', import.meta.url));
+  } catch (error: unknown) {
+    await database.close();
+    throw error;
+  }
+
+  const app = await buildApp({ config, databaseHealth: database });
 
   const shutdown = async (signal: NodeJS.Signals): Promise<void> => {
     app.log.info({ signal }, 'Shutdown requested');
     await app.close();
+    await database.close();
   };
 
   process.once('SIGINT', () => void shutdown('SIGINT'));

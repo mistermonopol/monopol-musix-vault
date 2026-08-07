@@ -5,7 +5,17 @@ services:
     build:
       context: ./backend
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
+      DB_HOST: postgres
+      DB_MAX_CONNECTIONS: ${DB_MAX_CONNECTIONS:-10}
+      DB_NAME: ${POSTGRES_DB:-musix_vault}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      DB_PORT: 5432
+      DB_SSL: "false"
+      DB_USER: ${POSTGRES_USER:-musix_vault}
       HOST: 0.0.0.0
       LOG_LEVEL: ${LOG_LEVEL:-info}
       NODE_ENV: production
