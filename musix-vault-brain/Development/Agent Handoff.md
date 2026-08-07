@@ -40,6 +40,16 @@ Backend and clients share no source code. They communicate through the HTTP API.
 10. API access-code boundary described below
 11. PostgreSQL-to-Obsidian export with stable IDs, linked entity notes, preserved user regions, atomic writes, and a web sync button
 
+## Current repository state
+
+Latest pushed commit on `main`:
+
+```text
+d5fca22 Connect catalog to Obsidian vault
+```
+
+The implementation, documentation, and tests are committed and pushed. The temporary E2E Compose stack, volumes, fixture music, generated test vault, and temporary environment files were removed after validation. The only known remaining local working-tree change is the user's `musix-vault-brain/.obsidian/workspace.json`; preserve it and do not stage, revert, overwrite, or commit it without explicit permission.
+
 ## Current deployment
 
 - Web player: `https://vault.monopol-ai.de`
@@ -90,20 +100,32 @@ The persistent server vault is separate from Coolify's source checkout. Automati
 
 The four UI routes use one shared authentication, catalog, scanner, and player implementation. Theme selection is persisted locally. Routing uses the History API without render-time side effects, and nginx explicitly serves `index.html` for every theme subtree so direct reloads work.
 
+The web container no longer depends on API health during startup. nginx uses Docker's runtime DNS resolver for the API upstream. Consequently `/healthz` and all theme routes remain available while the API is stopped; `/api/*` returns sanitized `502`/`504` JSON and recovers after the API restarts.
+
 Only playback is expected to be functional across all theme designs at this stage. Other visible navigation items are presentation placeholders until their corresponding milestones are implemented.
 
 ## Validation baseline
 
-Before handoff, the backend passed strict TypeScript, production build, and 82 automated tests. The web app passed strict TypeScript, production build, and 19 automated tests. Full container tests have covered PostgreSQL migration, auth rotation, real WAV scanning, cookie-authenticated full/ranged streaming, nginx health, API proxying, and direct theme-route reloads.
+Before handoff, the backend passed strict TypeScript, production build, and 87 automated tests. The web app passed strict TypeScript, production build, and 19 automated tests. Production Compose configuration validation also passed. Full container E2E covered PostgreSQL migration, auth rotation, real WAV scanning, PostgreSQL-to-Obsidian export, access-code rejection and acceptance, cookie-authenticated full/ranged streaming, web availability while the API was stopped, sanitized proxy failure responses, API proxy recovery, nginx health, and direct theme-route reloads.
 
 ## Prioritized TODO
 
 ### Immediate deployment
 
-- [ ] Add a strong `API_ACCESS_CODE` secret in Coolify and redeploy all services.
+- [ ] Before redeploying, add a strong `API_ACCESS_CODE` secret of at least 16 random characters in Coolify. The API intentionally refuses to start without it.
+- [ ] On the Hetzner host, create the persistent brain directory:
+  ```shell
+  sudo mkdir -p /srv/monopol-musix-vault/brain
+  sudo chown -R 10001:10001 /srv/monopol-musix-vault/brain
+  sudo chmod -R u+rwX,go-rwx /srv/monopol-musix-vault/brain
+  ```
+- [ ] Redeploy all services through Coolify.
+- [ ] Verify `https://vault.monopol-ai.de/healthz` and `https://api.vault.monopol-ai.de/health`.
 - [ ] Verify missing/wrong access codes return `403 ACCESS_DENIED`.
 - [ ] Verify login succeeds with the correct code and existing account.
+- [ ] Run a library scan, click **Obsidian**, and inspect generated notes under `/srv/monopol-musix-vault/brain`.
 - [ ] Verify web playback after deployment and after an access-token refresh.
+- [ ] Stop/restart the API once and confirm the web UI remains reachable and its API proxy recovers automatically.
 - [ ] Confirm `X-Access-Code` is redacted in production logs.
 - [ ] Keep `musix-vault-brain/.obsidian/workspace.json` user-local changes separate from agent commits unless explicitly requested.
 
@@ -151,7 +173,9 @@ Before handoff, the backend passed strict TypeScript, production build, and 82 a
 
 1. Read `README.md`, `docs/architecture.md`, `backend/README.md`, `web/README.md`, and `deploy/coolify.md`.
 2. Read this handoff and inspect `git status` before editing. Preserve user changes, especially Obsidian workspace state.
-3. Confirm Coolify has `API_ACCESS_CODE`, `AUTH_SECRET`, and `POSTGRES_PASSWORD` without printing their values.
-4. Run backend typecheck/tests/build, then web typecheck/tests/build.
-5. Work on one milestone at a time; container-test behavior changes before committing.
-6. Commit and push only after validation passes.
+3. Confirm the current branch contains `d5fca22` and that only the user's workspace state is locally modified.
+4. Confirm Coolify has `API_ACCESS_CODE`, `AUTH_SECRET`, and `POSTGRES_PASSWORD` without printing their values, and confirm the host brain directory has UID/GID `10001:10001` ownership.
+5. Redeploy and execute the immediate deployment checks above before starting another feature.
+6. Run backend typecheck/tests/build, then web typecheck/tests/build.
+7. Work on one milestone at a time; container-test behavior changes before committing.
+8. Commit and push only after validation passes.
