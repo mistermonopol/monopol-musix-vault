@@ -2,7 +2,7 @@
 type: development-handoff
 project: Monopol Musix Vault
 status: active
-updated: 2026-08-07
+updated: 2026-08-08
 tags:
   - development/handoff
   - project/monopol-musix-vault
@@ -41,16 +41,20 @@ Backend and clients share no source code. They communicate through the HTTP API.
 11. PostgreSQL-to-Obsidian export with stable IDs, linked entity notes, preserved user regions, atomic writes, and a web sync button
 12. Flutter mobile/desktop scaffold for Android, iOS, Windows, macOS, and Linux with API client, access-code login/bootstrap, secure refresh-session restoration, adaptive Material 3 shell, catalog, and authenticated audio player
 13. Per-user PostgreSQL track favorites synchronized through the protected API and editable in both Web and Flutter clients
+14. Cross-client user state: listening history, resume positions, playlists, devices, and explicit non-autoplay queue transfer
+15. Enriched per-user Brain graph with track, artist, album, genre, playlist, favorite, release metadata, and native Web/Flutter renderers
+16. Validated embedded JPEG/PNG/WebP artwork persisted during scans and fetched through protected byte APIs
+17. Role-aware Settings/Admin areas in Web and Flutter with Brain Sync controls
 
 ## Current repository state
 
 Latest pushed commit on `main`:
 
 ```text
-da29d74 Add authenticated Flutter audio player
+f6005a3 Prevent Brain sync timeouts
 ```
 
-The backend, web, Obsidian synchronization, deployment resilience, Flutter catalog, and authenticated native audio player are committed and pushed. Cross-client user-state synchronization is now active, beginning with favorites. The only user-owned working-tree change is `musix-vault-brain/.obsidian/workspace.json`; preserve it and do not stage, revert, overwrite, or commit it without explicit permission.
+The MVP implementation is committed and pushed. Backend, Web, Flutter, persistent Brain synchronization, enriched graph data, artwork, shared user state, and role-aware admin controls are present. The only user-owned working-tree change is `musix-vault-brain/.obsidian/workspace.json`; preserve it and do not stage, revert, overwrite, or commit it without explicit permission. The only user-owned working-tree change is `musix-vault-brain/.obsidian/workspace.json`; preserve it and do not stage, revert, overwrite, or commit it without explicit permission.
 
 ## Current deployment
 
@@ -108,7 +112,7 @@ Only playback is expected to be functional across all theme designs at this stag
 
 ## Flutter client
 
-`frontend/` is a native Flutter client targeting Android, iOS, Windows, macOS, and Linux; browser support remains in `web/`. The API endpoint defaults to `https://api.vault.monopol-ai.de` and can be overridden with `--dart-define=MMV_API_URL=...`. Never compile the access code into the application.
+`frontend/` is a native Flutter client targeting Android, iOS, Windows, macOS, and Linux; browser support remains in `web/`. The production API endpoint defaults to the same working proxy as Web, `https://vault.monopol-ai.de/api/`, and can be overridden with `--dart-define=MMV_API_URL=...`. Never compile the access code into the application.
 
 The Flutter client implements login and first-admin bootstrap, sends `X-Access-Code`, restores sessions by rotating the refresh token, keeps the short-lived access token in memory, and stores the access code and refresh token through platform secure storage. It loads and searches the PostgreSQL catalog and uses `media_kit` for JWT-authenticated HTTP range streaming with queue, seek, play/pause, previous/next, buffering, and error states. Stream credentials are sent only in the bearer header, never in URLs. Windows plugin builds require Windows Developer Mode because Flutter needs symlink support.
 
@@ -117,6 +121,42 @@ The Flutter client implements login and first-admin bootstrap, sends `X-Access-C
 PostgreSQL is the system of record for personal state. Track favorites use `user_track_favorites` with per-user uniqueness and cascading user/track references. `GET /favorites/tracks`, `PUT /favorites/tracks/:trackId`, and `DELETE /favorites/tracks/:trackId` require both access code and JWT. Web and Flutter both load this state and perform idempotent optimistic updates, so the same account sees the same favorites after refresh on either client.
 
 Roadmap 10.2–10.7 and the MVP completion slice are implemented across PostgreSQL, API, Web, and Flutter: recent listening events, resumable positions, playlists with ordered tracks, device registration/revocation, explicit queue snapshots/transfers with `autoPlay: false`, synchronized enriched Brain graph views, and protected embedded artwork. Queue transfer remains a deliberate user action and never interrupts another device automatically.
+
+## End-of-day summary — 2026-08-08
+
+The MVP feature scope is implemented. Important commits from this work period include:
+
+```text
+93293f7 Synchronize track favorites
+fa1ebae Require database-ready API containers
+866be48 Synchronize user state and brain graph
+c212135 Route Flutter through web API proxy
+f47de74 Version Android proxy build
+5557653 Complete brain and artwork MVP
+b75c049 Fix persistent brain permissions
+0d499f9 Add admin settings and Brain controls
+f6005a3 Prevent Brain sync timeouts
+```
+
+Current Android release:
+
+```text
+Version 0.4.0 (Build 4)
+frontend/build/app/outputs/flutter-apk/app-release.apk
+```
+
+Brain launch fixes:
+
+- `brain-init` runs once before API startup and assigns `/brain` to UID/GID `10001:10001`.
+- Non-writable Brain mounts return `503 OBSIDIAN_VAULT_UNAVAILABLE` instead of a generic `500`.
+- The exporter writes atomic notes in bounded batches of eight instead of serially fsyncing every note.
+- nginx allows up to 300 seconds specifically for `POST /api/brain/sync`; ordinary API timeouts remain unchanged.
+- Brain Sync is available in the Brain view and the role-aware Settings/Admin area in both Web and Flutter.
+- Admin mutations remain protected by access code, JWT, and `role: admin`.
+
+Before further feature work, redeploy Coolify from `f6005a3`, wait for `brain-init`, PostgreSQL, and API readiness, then test Brain Sync from both Web and APK Build 4. Confirm generated notes exist under `/srv/monopol-musix-vault/brain`. Run one full library scan after migration `009_create_track_artwork.sql` so embedded covers are populated.
+
+Known boundary: the graph served to clients is a safe PostgreSQL projection. The persistent Markdown vault is exported and human-editable, but bidirectional editorial Markdown import and external Git synchronization are intentionally still TODO.
 
 ## Validation baseline
 
@@ -133,11 +173,11 @@ Before handoff, the backend passed strict TypeScript, production build, and 107 
   sudo chown -R 10001:10001 /srv/monopol-musix-vault/brain
   sudo chmod -R u+rwX,go-rwx /srv/monopol-musix-vault/brain
   ```
-- [ ] Redeploy all services through Coolify.
-- [ ] Verify `https://vault.monopol-ai.de/healthz` and `https://api.vault.monopol-ai.de/health`.
+- [ ] Redeploy all services through Coolify from at least commit `f6005a3` and confirm `brain-init` completes successfully.
+- [ ] Verify `https://vault.monopol-ai.de/healthz`, `https://vault.monopol-ai.de/api/ready`, and `https://api.vault.monopol-ai.de/health`.
 - [ ] Verify missing/wrong access codes return `403 ACCESS_DENIED`.
 - [ ] Verify login succeeds with the correct code and existing account.
-- [ ] Run a library scan, click **Obsidian**, and inspect generated notes under `/srv/monopol-musix-vault/brain`.
+- [ ] Run a full library scan to populate migration `009` artwork, verify covers in Web/APK, click **Brain Sync** in Web and APK Build 4, and inspect generated notes under `/srv/monopol-musix-vault/brain`.
 - [ ] Verify web playback after deployment and after an access-token refresh.
 - [ ] Favorite a track in Web, refresh Flutter, and verify it is favorited there; then remove it in Flutter and verify Web after refresh.
 - [ ] Stop/restart the API once and confirm the web UI remains reachable and its API proxy recovers automatically.
@@ -193,7 +233,7 @@ Before handoff, the backend passed strict TypeScript, production build, and 107 
 
 1. Read `README.md`, `docs/architecture.md`, `backend/README.md`, `web/README.md`, and `deploy/coolify.md`.
 2. Read this handoff and inspect `git status` before editing. Preserve user changes, especially Obsidian workspace state.
-3. Inspect the latest commit and confirm that only the user's workspace state is locally modified before editing.
+3. Confirm `main` contains `f6005a3` or newer and that only the user's workspace state is locally modified before editing.
 4. Confirm Coolify has `API_ACCESS_CODE`, `AUTH_SECRET`, and `POSTGRES_PASSWORD` without printing their values, and confirm the host brain directory has UID/GID `10001:10001` ownership.
 5. Redeploy and execute the immediate deployment checks above before starting another feature.
 6. For Flutter work, run `dart format --set-exit-if-changed lib test`, `flutter analyze`, and `flutter test` from `frontend/`.
