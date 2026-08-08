@@ -28,6 +28,8 @@ final class _LibraryScreenState extends State<LibraryScreen> {
   int _total = 0;
   bool _loading = true;
   String? _error;
+  Set<String> _favoriteIds = {};
+  Set<String> _updatingFavoriteIds = {};
 
   @override
   void initState() {
@@ -172,13 +174,74 @@ final class _LibraryScreenState extends State<LibraryScreen> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            trailing: Text(_formatDuration(track.durationSeconds)),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(_formatDuration(track.durationSeconds)),
+                IconButton(
+                  tooltip: _favoriteIds.contains(track.id)
+                      ? 'Aus Favoriten entfernen'
+                      : 'Zu Favoriten hinzufügen',
+                  onPressed: _updatingFavoriteIds.contains(track.id)
+                      ? null
+                      : () => _toggleFavorite(track),
+                  icon: Icon(
+                    _favoriteIds.contains(track.id)
+                        ? Icons.favorite
+                        : Icons.favorite_border,
+                    color: _favoriteIds.contains(track.id)
+                        ? Colors.pinkAccent
+                        : null,
+                  ),
+                ),
+              ],
+            ),
             selected: widget.audioController.currentTrack?.id == track.id,
             onTap: () => _play(index),
           );
         },
       ),
     );
+  }
+
+  Future<void> _toggleFavorite(CatalogTrack track) async {
+    final nextFavorite = !_favoriteIds.contains(track.id);
+    setState(() {
+      _updatingFavoriteIds = {..._updatingFavoriteIds, track.id};
+      if (nextFavorite) {
+        _favoriteIds = {..._favoriteIds, track.id};
+      } else {
+        _favoriteIds = {..._favoriteIds}..remove(track.id);
+      }
+    });
+    try {
+      await widget.authController.setTrackFavorite(
+        track.id,
+        favorite: nextFavorite,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        if (nextFavorite) {
+          _favoriteIds = {..._favoriteIds}..remove(track.id);
+        } else {
+          _favoriteIds = {..._favoriteIds, track.id};
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Favorit konnte nicht gespeichert werden: $error'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(
+          () =>
+              _updatingFavoriteIds = {..._updatingFavoriteIds}
+                ..remove(track.id),
+        );
+      }
+    }
   }
 
   Future<void> _play(int index) async {
@@ -204,13 +267,17 @@ final class _LibraryScreenState extends State<LibraryScreen> {
       _error = null;
     });
     try {
-      final page = await widget.authController.listTracks(
-        search: _searchController.text,
-      );
+      final results = await Future.wait<Object>([
+        widget.authController.listTracks(search: _searchController.text),
+        widget.authController.listFavoriteTrackIds(),
+      ]);
       if (!mounted) return;
+      final page = results[0] as CatalogPage;
+      final favoriteIds = results[1] as Set<String>;
       setState(() {
         _tracks = page.items;
         _total = page.total;
+        _favoriteIds = favoriteIds;
       });
     } catch (error) {
       if (!mounted) return;

@@ -70,6 +70,28 @@ describe('access code lifecycle', () => {
     expect(localStorage.getItem('mmv.refresh-token')).toBe('saved-refresh');
   });
 
+  it('lists and updates synchronized favorites with both auth layers', async () => {
+    localStorage.setItem('mmv.refresh-token', 'saved-refresh');
+    sessionStorage.setItem('mmv.access-code', 'tab-code');
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(jsonResponse(session))
+      .mockResolvedValueOnce(jsonResponse({ items: [{ track: { id: 'track-id' } }] }))
+      .mockResolvedValueOnce(jsonResponse({ favorite: { track: { id: 'track-id' } } }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+    const api = await loadApi();
+    await api.refreshSession();
+
+    expect(await api.listFavoriteTrackIds()).toEqual(new Set(['track-id']));
+    await api.setTrackFavorite('track-id', true);
+    await api.setTrackFavorite('track-id', false);
+
+    expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/favorites/tracks');
+    expect(fetchMock.mock.calls[2]?.[1]?.method).toBe('PUT');
+    expect(fetchMock.mock.calls[3]?.[1]?.method).toBe('DELETE');
+    expect(new Headers(fetchMock.mock.calls[2]?.[1]?.headers).get('Authorization')).toBe('Bearer access-token');
+    expect(new Headers(fetchMock.mock.calls[2]?.[1]?.headers).get('X-Access-Code')).toBe('tab-code');
+  });
+
   it('clears the session code on logout', async () => {
     localStorage.setItem('mmv.refresh-token', 'saved-refresh');
     sessionStorage.setItem('mmv.access-code', 'tab-code');

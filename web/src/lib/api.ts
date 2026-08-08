@@ -166,6 +166,27 @@ export async function listTracks(
   };
 }
 
+export async function listFavoriteTrackIds(): Promise<ReadonlySet<string>> {
+  const payload = await request<unknown>('/favorites/tracks');
+  const record = typeof payload === 'object' && payload !== null
+    ? payload as Record<string, unknown>
+    : null;
+  const items = Array.isArray(record?.items) ? record.items : [];
+  return new Set(items.flatMap((value) => {
+    if (typeof value !== 'object' || value === null) return [];
+    const track = (value as Record<string, unknown>).track;
+    if (typeof track !== 'object' || track === null) return [];
+    const id = (track as Record<string, unknown>).id;
+    return typeof id === 'string' ? [id] : [];
+  }));
+}
+
+export function setTrackFavorite(trackId: string, favorite: boolean): Promise<unknown> {
+  return request(`/favorites/tracks/${encodeURIComponent(trackId)}`, {
+    method: favorite ? 'PUT' : 'DELETE',
+  });
+}
+
 export function scanLibrary(): Promise<ScanResult> {
   return request<ScanResult>('/library/scan', { method: 'POST' });
 }

@@ -86,6 +86,58 @@ void main() {
     expect(page.items.single.album, 'Album');
   });
 
+  test('lists and updates synchronized favorites', () async {
+    var requestIndex = 0;
+    final client = ApiClient(
+      baseUrl: Uri.parse('https://api.example.test'),
+      httpClient: MockClient((request) async {
+        expect(request.headers['X-Access-Code'], 'private-access-code');
+        expect(request.headers['Authorization'], 'Bearer access-token');
+        requestIndex += 1;
+        if (requestIndex == 1) {
+          expect(request.method, 'GET');
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {
+                  'favoritedAt': '2026-08-08T12:00:00.000Z',
+                  'track': {'id': 'track-id', 'title': 'Track'},
+                },
+              ],
+            }),
+            200,
+          );
+        }
+        expect(request.url.path, '/favorites/tracks/track-id');
+        if (requestIndex == 2) {
+          expect(request.method, 'PUT');
+          return http.Response(jsonEncode({'favorite': {}}), 200);
+        }
+        expect(request.method, 'DELETE');
+        return http.Response('', 204);
+      }),
+    );
+
+    final favorites = await client.listFavoriteTrackIds(
+      accessCode: 'private-access-code',
+      accessToken: 'access-token',
+    );
+    await client.setTrackFavorite(
+      trackId: 'track-id',
+      favorite: true,
+      accessCode: 'private-access-code',
+      accessToken: 'access-token',
+    );
+    await client.setTrackFavorite(
+      trackId: 'track-id',
+      favorite: false,
+      accessCode: 'private-access-code',
+      accessToken: 'access-token',
+    );
+
+    expect(favorites, {'track-id'});
+  });
+
   test('builds a secret-free stream URL', () {
     final client = ApiClient(baseUrl: Uri.parse('https://api.example.test'));
 

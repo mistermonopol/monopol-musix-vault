@@ -39,10 +39,15 @@ The exporter does not run Git commands or push credentials. Synchronizing the pe
 - `POST /auth/refresh` rotates a refresh token and issues a new token pair.
 - `POST /auth/logout` revokes a refresh token.
 - `GET /auth/me` returns the user associated with a valid bearer access token.
+- `GET /favorites/tracks` lists the current user's available favorite tracks with catalog metadata.
+- `PUT /favorites/tracks/:trackId` idempotently favorites an available track and returns the favorite; missing tracks return `404`.
+- `DELETE /favorites/tracks/:trackId` idempotently removes a favorite and returns `204`.
 - `POST /library/scan` performs an authenticated incremental scan of the configured library.
 - `POST /brain/sync` writes catalog notes and relationships into the Obsidian vault.
 - `GET /tracks/:trackId/stream` streams an available track and supports one RFC 9110 byte range.
 - `HEAD /tracks/:trackId/stream` returns stream metadata without opening the audio file.
+
+Favorite endpoints require both `X-Access-Code` and `Authorization: Bearer <access-token>`. Track IDs must be UUIDs. Favorites are scoped to the authenticated user and are removed automatically when either the user or track is deleted.
 
 ## Audio streaming
 

@@ -92,6 +92,36 @@ final class AuthController extends ChangeNotifier {
     );
   }
 
+  Future<Set<String>> listFavoriteTrackIds() {
+    final credentials = _activeCredentials();
+    return api.listFavoriteTrackIds(
+      accessCode: credentials.accessCode,
+      accessToken: credentials.accessToken,
+    );
+  }
+
+  Future<void> setTrackFavorite(String trackId, {required bool favorite}) {
+    final credentials = _activeCredentials();
+    return api.setTrackFavorite(
+      trackId: trackId,
+      favorite: favorite,
+      accessCode: credentials.accessCode,
+      accessToken: credentials.accessToken,
+    );
+  }
+
+  ({String accessCode, String accessToken}) _activeCredentials() {
+    final currentSession = session;
+    final currentAccessCode = _accessCode;
+    if (currentSession == null || currentAccessCode == null) {
+      throw const ApiException('Session abgelaufen.', statusCode: 401);
+    }
+    return (
+      accessCode: currentAccessCode,
+      accessToken: currentSession.accessToken,
+    );
+  }
+
   List<PlaybackSource> playbackSources(List<CatalogTrack> tracks) {
     final currentSession = session;
     if (currentSession == null) {

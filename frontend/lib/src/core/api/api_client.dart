@@ -70,6 +70,42 @@ final class ApiClient {
     return CatalogPage.fromJson(_decode(response));
   }
 
+  Future<Set<String>> listFavoriteTrackIds({
+    required String accessCode,
+    required String accessToken,
+  }) async {
+    final response = await _httpClient.get(
+      _resolve('/favorites/tracks'),
+      headers: _headers(accessCode, accessToken: accessToken),
+    );
+    final payload = _decode(response);
+    final items = payload['items'];
+    if (items is! List) return {};
+    return items
+        .whereType<Map<String, Object?>>()
+        .map((favorite) => favorite['track'])
+        .whereType<Map<String, Object?>>()
+        .map((track) => track['id'])
+        .whereType<String>()
+        .toSet();
+  }
+
+  Future<void> setTrackFavorite({
+    required String trackId,
+    required bool favorite,
+    required String accessCode,
+    required String accessToken,
+  }) async {
+    final uri = _resolve('/favorites/tracks/$trackId');
+    final headers = _headers(accessCode, accessToken: accessToken);
+    final response = favorite
+        ? await _httpClient.put(uri, headers: headers)
+        : await _httpClient.delete(uri, headers: headers);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      _decode(response);
+    }
+  }
+
   Uri streamUri(String trackId) => _resolve('/tracks/$trackId/stream');
 
   Uri _resolve(String path) => baseUrl.resolve(path);

@@ -4,6 +4,7 @@ import { CatalogQueryService } from './application/catalog-query.js';
 import { MusicScanner } from './application/music-scanner.js';
 import { SyncObsidianCatalogService } from './application/obsidian/sync-catalog.js';
 import { TrackStreamingService } from './application/track-streaming-service.js';
+import { TrackFavoritesService } from './application/track-favorites.js';
 import { ArgonPasswordHasher } from './infrastructure/auth/argon-password-hasher.js';
 import { JwtTokenService } from './infrastructure/auth/jwt-token-service.js';
 import { PostgresAuthRepository } from './infrastructure/auth/postgres-auth-repository.js';
@@ -11,6 +12,7 @@ import { PostgresCatalogRepository } from './infrastructure/catalog/postgres-cat
 import { loadConfig } from './infrastructure/config.js';
 import { runMigrations } from './infrastructure/database/migrate.js';
 import { PostgresDatabase } from './infrastructure/database/postgres-database.js';
+import { PostgresTrackFavoritesRepository } from './infrastructure/favorites/postgres-track-favorites-repository.js';
 import { FilesystemAudioDiscovery } from './infrastructure/scanner/filesystem-audio-discovery.js';
 import { MusicMetadataReader } from './infrastructure/scanner/music-metadata-reader.js';
 import { FilesystemObsidianVaultExporter } from './infrastructure/obsidian/filesystem-vault-exporter.js';
@@ -46,6 +48,9 @@ async function start(): Promise<void> {
   const catalog = new CatalogQueryService(
     new PostgresCatalogRepository(database.client),
   );
+  const favorites = new TrackFavoritesService(
+    new PostgresTrackFavoritesRepository(database.client),
+  );
   const obsidianSync = new SyncObsidianCatalogService(
     new PostgresObsidianCatalogSource(database.client),
     new FilesystemObsidianVaultExporter(config.OBSIDIAN_PATH),
@@ -66,6 +71,7 @@ async function start(): Promise<void> {
     catalog,
     config,
     databaseHealth: database,
+    favorites,
     obsidianSync,
     scanner,
     streaming,

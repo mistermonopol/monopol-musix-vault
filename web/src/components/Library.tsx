@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { ApiError, listTracks, scanLibrary, syncObsidianBrain } from '../lib/api';
+import { useCallback, useEffect, useState, type MouseEvent, type ReactNode } from 'react';
+import { ApiError, listFavoriteTrackIds, listTracks, scanLibrary, setTrackFavorite, syncObsidianBrain } from '../lib/api';
 import { formatDuration } from '../lib/format';
 import type { ThemeDefinition } from '../lib/themes';
 import type { Track, User } from '../lib/types';
@@ -25,12 +25,17 @@ export function Library({ user, theme, onLogout, onPlay, currentTrack }: Library
   const [scanning, setScanning] = useState(false);
   const [syncingBrain, setSyncingBrain] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [favoriteIds, setFavoriteIds] = useState<ReadonlySet<string>>(new Set());
+  const [updatingFavorites, setUpdatingFavorites] = useState<ReadonlySet<string>>(new Set());
 
   const load = useCallback(async (search: string, signal?: AbortSignal) => {
     setLoading(true); setError(null);
     try {
-      const page = await listTracks(search, PAGE_SIZE, 0, signal);
-      setTracks(page.tracks); setTotal(page.total);
+      const [page, favorites] = await Promise.all([
+        listTracks(search, PAGE_SIZE, 0, signal),
+        listFavoriteTrackIds(),
+      ]);
+      setTracks(page.tracks); setTotal(page.total); setFavoriteIds(favorites);
     } catch (caught: unknown) {
       if (caught instanceof DOMException && caught.name === 'AbortError') return;
       setError(caught instanceof ApiError ? caught.message : 'Could not load your library.');
@@ -51,6 +56,31 @@ export function Library({ user, theme, onLogout, onPlay, currentTrack }: Library
     } catch (caught: unknown) {
       setNotice(caught instanceof ApiError ? caught.message : 'Could not load more tracks.');
     } finally { setLoadingMore(false); }
+  }
+
+  async function toggleFavorite(track: Track) {
+    if (updatingFavorites.has(track.id)) return;
+    const nextFavorite = !favoriteIds.has(track.id);
+    setUpdatingFavorites((current) => new Set(current).add(track.id));
+    setFavoriteIds((current) => {
+      const next = new Set(current);
+      if (nextFavorite) next.add(track.id); else next.delete(track.id);
+      return next;
+    });
+    try {
+      await setTrackFavorite(track.id, nextFavorite);
+    } catch (caught: unknown) {
+      setFavoriteIds((current) => {
+        const next = new Set(current);
+        if (nextFavorite) next.delete(track.id); else next.add(track.id);
+        return next;
+      });
+      setNotice(caught instanceof ApiError ? caught.message : 'Favorite could not be updated.');
+    } finally {
+      setUpdatingFavorites((current) => {
+        const next = new Set(current); next.delete(track.id); return next;
+      });
+    }
   }
 
   async function scan() {
@@ -80,7 +110,7 @@ export function Library({ user, theme, onLogout, onPlay, currentTrack }: Library
     ? <State title="Library unavailable" copy={error} action={<button className="secondary" onClick={() => void load(query)}>Try again</button>} />
     : tracks.length === 0
       ? <State title={query ? 'No matches found' : 'Your library is quiet'} copy={query ? 'Try another title, artist, or album.' : 'Run a scan to discover music on your server.'} action={!query ? <button className="primary" disabled={scanning} onClick={() => void scan()}>Scan library</button> : undefined} />
-      : <ThemeContent theme={theme} tracks={tracks} currentTrack={currentTrack} onPlay={onPlay} />;
+      : <ThemeContent theme={theme} tracks={tracks} currentTrack={currentTrack} onPlay={onPlay} favoriteIds={favoriteIds} updatingFavorites={updatingFavorites} onToggleFavorite={(track) => void toggleFavorite(track)} />;
 
   return <main className={`library theme-${theme.id}`}>
     <ThemeChrome theme={theme} user={user} onLogout={onLogout} controls={controls} tracks={tracks} currentTrack={currentTrack} onPlay={onPlay} />
@@ -102,23 +132,29 @@ function ThemeChrome({ theme, user, onLogout, controls, tracks, currentTrack, on
   return <><header className="sound-nav"><VaultMark /><nav aria-label="Primary"><a className="active" href="#tracks-heading">Home</a><a href="#tracks-heading">Stream</a><a href="#tracks-heading">Library</a></nav>{controls}<span>{user.email}</span><button onClick={onLogout}>Sign out</button></header><section className="sound-banner"><p>YOUR PRIVATE SOUND</p><h2>Tracks worth<br />turning up.</h2><span>Fresh from your own collection.</span></section><div className="sound-tabs" role="tablist" aria-label="Catalog views"><button role="tab" aria-selected="true">All music</button><button role="tab" aria-selected="false">Recently added</button><button role="tab" aria-selected="false">Albums</button></div></>;
 }
 
-function ThemeContent({ theme, tracks, currentTrack, onPlay }: { readonly theme: ThemeDefinition; readonly tracks: readonly Track[]; readonly currentTrack: Track | null; readonly onPlay: (track: Track) => void }) {
-  if (theme.id === 'soundcloud') return <div className="cover-grid">{tracks.map((track, index) => <TrackTile key={track.id} track={track} index={index} onPlay={onPlay} active={track.id === currentTrack?.id} />)}</div>;
-  if (theme.id === 'applemusic') return <div className="apple-columns">{tracks.map((track, index) => <TrackTile key={track.id} track={track} index={index} onPlay={onPlay} compact active={track.id === currentTrack?.id} />)}</div>;
-  if (theme.id === 'amazonmusic') return <><div className="amazon-feature-row">{tracks.slice(0, 5).map((track, index) => <TrackTile key={track.id} track={track} index={index} onPlay={onPlay} active={track.id === currentTrack?.id} />)}</div><h2 className="subheading">Songs for you</h2><div className="amazon-rows">{tracks.slice(5).map((track, index) => <TrackRow key={track.id} track={track} index={index + 5} onPlay={onPlay} active={track.id === currentTrack?.id} />)}</div></>;
-  return <div className="track-table" role="list">{tracks.map((track, index) => <TrackRow key={track.id} track={track} index={index} onPlay={onPlay} active={track.id === currentTrack?.id} />)}</div>;
+function ThemeContent({ theme, tracks, currentTrack, onPlay, favoriteIds, updatingFavorites, onToggleFavorite }: { readonly theme: ThemeDefinition; readonly tracks: readonly Track[]; readonly currentTrack: Track | null; readonly onPlay: (track: Track) => void; readonly favoriteIds: ReadonlySet<string>; readonly updatingFavorites: ReadonlySet<string>; readonly onToggleFavorite: (track: Track) => void }) {
+  const favoriteProps = (track: Track) => ({ favorite: favoriteIds.has(track.id), updatingFavorite: updatingFavorites.has(track.id), onToggleFavorite });
+  if (theme.id === 'soundcloud') return <div className="cover-grid">{tracks.map((track, index) => <TrackTile key={track.id} track={track} index={index} onPlay={onPlay} active={track.id === currentTrack?.id} {...favoriteProps(track)} />)}</div>;
+  if (theme.id === 'applemusic') return <div className="apple-columns">{tracks.map((track, index) => <TrackTile key={track.id} track={track} index={index} onPlay={onPlay} compact active={track.id === currentTrack?.id} {...favoriteProps(track)} />)}</div>;
+  if (theme.id === 'amazonmusic') return <><div className="amazon-feature-row">{tracks.slice(0, 5).map((track, index) => <TrackTile key={track.id} track={track} index={index} onPlay={onPlay} active={track.id === currentTrack?.id} {...favoriteProps(track)} />)}</div><h2 className="subheading">Songs for you</h2><div className="amazon-rows">{tracks.slice(5).map((track, index) => <TrackRow key={track.id} track={track} index={index + 5} onPlay={onPlay} active={track.id === currentTrack?.id} {...favoriteProps(track)} />)}</div></>;
+  return <div className="track-table" role="list">{tracks.map((track, index) => <TrackRow key={track.id} track={track} index={index} onPlay={onPlay} active={track.id === currentTrack?.id} {...favoriteProps(track)} />)}</div>;
 }
 
 function LibraryControls({ query, onQuery, scanning, syncingBrain, onScan, onSyncBrain }: { readonly query: string; readonly onQuery: (query: string) => void; readonly scanning: boolean; readonly syncingBrain: boolean; readonly onScan: () => void; readonly onSyncBrain: () => void }) {
   return <div className="library-controls"><label><span className="sr-only">Search your library</span><b aria-hidden="true">⌕</b><input type="search" value={query} onChange={(event) => onQuery(event.target.value)} placeholder="Search your library" /></label><button className="scan-button" type="button" disabled={scanning} onClick={onScan}>{scanning ? 'Scanning…' : '↻ Scan'}</button><button className="brain-button" type="button" disabled={syncingBrain} onClick={onSyncBrain}>{syncingBrain ? 'Syncing…' : '◇ Obsidian'}</button></div>;
 }
 
-function TrackRow({ track, index, onPlay, active }: { readonly track: Track; readonly index: number; readonly onPlay: (track: Track) => void; readonly active: boolean }) {
-  return <button className={`track-row ${active ? 'selected' : ''}`} role="listitem" onClick={() => onPlay(track)} aria-label={`Play ${track.title} by ${artist(track)}`}><span className="track-number">{active ? '▶' : index + 1}</span><Artwork track={track} index={index} /><span className="track-main"><strong>{track.title}</strong><small>{artist(track)}</small></span><span className="track-album">{track.album ?? 'Unknown album'}</span><span className="track-year">{track.year ?? '—'}</span><span>{formatDuration(track.durationSeconds)}</span></button>;
+function TrackRow({ track, index, onPlay, active, favorite = false, updatingFavorite = false, onToggleFavorite }: { readonly track: Track; readonly index: number; readonly onPlay: (track: Track) => void; readonly active: boolean; readonly favorite?: boolean; readonly updatingFavorite?: boolean; readonly onToggleFavorite?: (track: Track) => void }) {
+  return <button className={`track-row ${active ? 'selected' : ''}`} role="listitem" onClick={() => onPlay(track)} aria-label={`Play ${track.title} by ${artist(track)}`}><span className="track-number">{active ? '▶' : index + 1}</span><Artwork track={track} index={index} /><span className="track-main"><strong>{track.title}</strong><small>{artist(track)}</small></span><span className="track-album">{track.album ?? 'Unknown album'}</span><span className="track-year">{track.year ?? '—'}</span><span>{formatDuration(track.durationSeconds)}</span>{onToggleFavorite && <FavoriteButton track={track} favorite={favorite} disabled={updatingFavorite} onToggle={onToggleFavorite} />}</button>;
 }
 
-function TrackTile({ track, index, onPlay, active = false, compact = false }: { readonly track: Track; readonly index: number; readonly onPlay: (track: Track) => void; readonly active?: boolean; readonly compact?: boolean }) {
-  return <button className={`track-tile ${compact ? 'compact' : ''} ${active ? 'selected' : ''}`} onClick={() => onPlay(track)} aria-label={`Play ${track.title} by ${artist(track)}`}><Artwork track={track} index={index} /><span><strong>{track.title}</strong><small>{artist(track)}</small></span><i aria-hidden="true">▶</i></button>;
+function TrackTile({ track, index, onPlay, active = false, compact = false, favorite = false, updatingFavorite = false, onToggleFavorite }: { readonly track: Track; readonly index: number; readonly onPlay: (track: Track) => void; readonly active?: boolean; readonly compact?: boolean; readonly favorite?: boolean; readonly updatingFavorite?: boolean; readonly onToggleFavorite?: (track: Track) => void }) {
+  return <button className={`track-tile ${compact ? 'compact' : ''} ${active ? 'selected' : ''}`} onClick={() => onPlay(track)} aria-label={`Play ${track.title} by ${artist(track)}`}><Artwork track={track} index={index} /><span><strong>{track.title}</strong><small>{artist(track)}</small></span>{onToggleFavorite && <FavoriteButton track={track} favorite={favorite} disabled={updatingFavorite} onToggle={onToggleFavorite} />}<i aria-hidden="true">▶</i></button>;
+}
+
+function FavoriteButton({ track, favorite, disabled, onToggle }: { readonly track: Track; readonly favorite: boolean; readonly disabled: boolean; readonly onToggle: (track: Track) => void }) {
+  function toggle(event: MouseEvent<HTMLSpanElement>) { event.stopPropagation(); if (!disabled) onToggle(track); }
+  return <span className={`favorite-button ${favorite ? 'favorite' : ''}`} role="button" tabIndex={disabled ? -1 : 0} aria-label={favorite ? `Remove ${track.title} from favorites` : `Add ${track.title} to favorites`} aria-disabled={disabled} onClick={toggle} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); if (!disabled) onToggle(track); } }}>{favorite ? '♥' : '♡'}</span>;
 }
 
 function VaultMark() { return <a className="vault-mark" href="#tracks-heading" aria-label="Monopol Musix Vault home"><b>m</b><span>MONOPOL<small>MUSIX VAULT</small></span></a>; }

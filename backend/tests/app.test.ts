@@ -32,7 +32,7 @@ const config: AppConfig = {
 
 const authDependencies: Pick<
   BuildAppOptions,
-  'authRepository' | 'authService' | 'catalog' | 'obsidianSync' | 'scanner' | 'streaming' | 'tokenService'
+  'authRepository' | 'authService' | 'catalog' | 'favorites' | 'obsidianSync' | 'scanner' | 'streaming' | 'tokenService'
 > = {
   authRepository: {
     bootstrapAdmin: async () => null,
@@ -56,6 +56,13 @@ const authDependencies: Pick<
   },
   catalog: {
     execute: async () => ({ items: [], page: 1, pageSize: 50, total: 0 }),
+  },
+  favorites: {
+    list: async () => [],
+    remove: async () => undefined,
+    set: async () => {
+      throw new Error('Not used');
+    },
   },
   obsidianSync: {
     execute: async () => ({
@@ -178,6 +185,70 @@ describe('HTTP application', () => {
       error: 'Access denied',
       statusCode: 403,
     });
+  });
+
+  it('lists the authenticated user favorites with catalog data', async () => {
+    const favoritedAt = new Date('2026-08-08T12:00:00.000Z');
+    const app = await buildApp({
+      ...authDependencies,
+      config,
+      databaseHealth: databaseHealth(true),
+      favorites: {
+        ...authDependencies.favorites,
+        list: async (userId) => {
+          expect(userId).toBe('test');
+          return [{
+            favoritedAt,
+            track: {
+              album: null,
+              artists: [],
+              codec: 'flac',
+              durationSeconds: 180,
+              genres: [],
+              id: '00000000-0000-4000-8000-000000000001',
+              title: 'Favorite track',
+              year: 2026,
+            },
+          }];
+        },
+      },
+    });
+    apps.push(app);
+
+    const response = await app.inject({
+      headers: {
+        authorization: 'Bearer valid-token',
+        'x-access-code': accessCode,
+      },
+      method: 'GET',
+      url: '/favorites/tracks',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      items: [{ favoritedAt: favoritedAt.toISOString(), track: { title: 'Favorite track' } }],
+    });
+  });
+
+  it('validates favorite track IDs', async () => {
+    const app = await buildApp({
+      ...authDependencies,
+      config,
+      databaseHealth: databaseHealth(true),
+    });
+    apps.push(app);
+
+    const response = await app.inject({
+      headers: {
+        authorization: 'Bearer valid-token',
+        'x-access-code': accessCode,
+      },
+      method: 'PUT',
+      url: '/favorites/tracks/not-a-uuid',
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'INVALID_REQUEST' });
   });
 
   it('accepts the correct access code', async () => {

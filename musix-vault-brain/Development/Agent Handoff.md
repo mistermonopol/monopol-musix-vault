@@ -39,17 +39,18 @@ Backend and clients share no source code. They communicate through the HTTP API.
 9. Selectable screenshot-inspired UI themes at `/spotify`, `/soundcloud`, `/applemusic`, and `/amazonmusic`
 10. API access-code boundary described below
 11. PostgreSQL-to-Obsidian export with stable IDs, linked entity notes, preserved user regions, atomic writes, and a web sync button
-12. Flutter mobile/desktop scaffold for Android, iOS, Windows, macOS, and Linux with API client, access-code login/bootstrap, secure refresh-session restoration, and adaptive Material 3 shell
+12. Flutter mobile/desktop scaffold for Android, iOS, Windows, macOS, and Linux with API client, access-code login/bootstrap, secure refresh-session restoration, adaptive Material 3 shell, catalog, and authenticated audio player
+13. Per-user PostgreSQL track favorites synchronized through the protected API and editable in both Web and Flutter clients
 
 ## Current repository state
 
 Latest pushed commit on `main`:
 
 ```text
-0c6817e Update agent handoff
+da29d74 Add authenticated Flutter audio player
 ```
 
-The backend, web, Obsidian synchronization, and deployment-resilience implementation is committed and pushed. Flutter development is now active under `frontend/`. The only user-owned working-tree change is `musix-vault-brain/.obsidian/workspace.json`; preserve it and do not stage, revert, overwrite, or commit it without explicit permission.
+The backend, web, Obsidian synchronization, deployment resilience, Flutter catalog, and authenticated native audio player are committed and pushed. Cross-client user-state synchronization is now active, beginning with favorites. The only user-owned working-tree change is `musix-vault-brain/.obsidian/workspace.json`; preserve it and do not stage, revert, overwrite, or commit it without explicit permission.
 
 ## Current deployment
 
@@ -111,9 +112,15 @@ Only playback is expected to be functional across all theme designs at this stag
 
 The Flutter client implements login and first-admin bootstrap, sends `X-Access-Code`, restores sessions by rotating the refresh token, keeps the short-lived access token in memory, and stores the access code and refresh token through platform secure storage. It loads and searches the PostgreSQL catalog and uses `media_kit` for JWT-authenticated HTTP range streaming with queue, seek, play/pause, previous/next, buffering, and error states. Stream credentials are sent only in the bearer header, never in URLs. Windows plugin builds require Windows Developer Mode because Flutter needs symlink support.
 
+## Cross-client user-state synchronization
+
+PostgreSQL is the system of record for personal state. Track favorites use `user_track_favorites` with per-user uniqueness and cascading user/track references. `GET /favorites/tracks`, `PUT /favorites/tracks/:trackId`, and `DELETE /favorites/tracks/:trackId` require both access code and JWT. Web and Flutter both load this state and perform idempotent optimistic updates, so the same account sees the same favorites after refresh on either client.
+
+The next synchronized state milestone is listening history and resumable playback position, followed by playlists and device/session management. Queue transfer should remain explicit rather than automatically interrupting another device.
+
 ## Validation baseline
 
-Before handoff, the backend passed strict TypeScript, production build, and 87 automated tests. The web app passed strict TypeScript, production build, and 19 automated tests. The Flutter client passed `flutter analyze` with no issues, all 5 tests passed, and an Android release APK with the native audio engine built successfully. Production Compose configuration validation also passed. Full container E2E covered PostgreSQL migration, auth rotation, real WAV scanning, PostgreSQL-to-Obsidian export, access-code rejection and acceptance, cookie-authenticated full/ranged streaming, web availability while the API was stopped, sanitized proxy failure responses, API proxy recovery, nginx health, and direct theme-route reloads.
+Before handoff, the backend passed strict TypeScript, production build, and 93 automated tests. The web app passed strict TypeScript, production build, and 20 automated tests. The Flutter client passed `flutter analyze` with no issues, all 6 tests passed, and an Android release APK with the native audio engine built successfully. Production Compose configuration validation also passed. Full container E2E covered PostgreSQL migration, auth rotation, real WAV scanning, PostgreSQL-to-Obsidian export, access-code rejection and acceptance, cookie-authenticated full/ranged streaming, web availability while the API was stopped, sanitized proxy failure responses, API proxy recovery, nginx health, and direct theme-route reloads.
 
 ## Prioritized TODO
 
@@ -132,6 +139,7 @@ Before handoff, the backend passed strict TypeScript, production build, and 87 a
 - [ ] Verify login succeeds with the correct code and existing account.
 - [ ] Run a library scan, click **Obsidian**, and inspect generated notes under `/srv/monopol-musix-vault/brain`.
 - [ ] Verify web playback after deployment and after an access-token refresh.
+- [ ] Favorite a track in Web, refresh Flutter, and verify it is favorited there; then remove it in Flutter and verify Web after refresh.
 - [ ] Stop/restart the API once and confirm the web UI remains reachable and its API proxy recovers automatically.
 - [ ] Confirm `X-Access-Code` is redacted in production logs.
 - [ ] Keep `musix-vault-brain/.obsidian/workspace.json` user-local changes separate from agent commits unless explicitly requested.
@@ -173,8 +181,8 @@ Before handoff, the backend passed strict TypeScript, production build, and 87 a
 - [ ] Full library UI and artwork
 - [ ] Search refinements
 - [ ] Playlists
-- [ ] Favorites
-- [ ] Recently played and listening history
+- [x] Synchronized per-user favorites in PostgreSQL, API, Web, and Flutter
+- [ ] Recently played, listening history, and resumable playback position
 - [ ] Queue, shuffle, repeat, previous, and next behavior
 - [ ] Final accessibility, responsive, performance, and deployment polish
 

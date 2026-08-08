@@ -15,11 +15,13 @@ import { GetHealth } from './application/get-health.js';
 import type { MusicScannerOperations } from './application/music-scanner.js';
 import type { ObsidianSyncOperations } from './application/obsidian/sync-catalog.js';
 import type { TrackStreamingOperations } from './application/track-streaming-service.js';
+import { TrackNotFoundError, type TrackFavoritesOperations } from './application/track-favorites.js';
 import { createAccessCodeGate } from './infrastructure/access-code.js';
 import type { AppConfig } from './infrastructure/config.js';
 import { SystemClock } from './infrastructure/system-clock.js';
 import { registerAuthRoutes } from './interfaces/http/auth-routes.js';
 import { registerCatalogRoutes } from './interfaces/http/catalog-routes.js';
+import { registerFavoritesRoutes } from './interfaces/http/favorites-routes.js';
 import { registerHealthRoutes } from './interfaces/http/health-routes.js';
 import { registerLibraryRoutes } from './interfaces/http/library-routes.js';
 import { registerObsidianRoutes } from './interfaces/http/obsidian-routes.js';
@@ -31,6 +33,7 @@ export interface BuildAppOptions {
   readonly catalog: CatalogQueryOperations;
   readonly config: AppConfig;
   readonly databaseHealth: DatabaseHealth;
+  readonly favorites: TrackFavoritesOperations;
   readonly logger?: FastifyServerOptions['logger'];
   readonly obsidianSync: ObsidianSyncOperations;
   readonly scanner: MusicScannerOperations;
@@ -61,6 +64,13 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
         code: error.code,
         error: error.message,
         statusCode: error.statusCode,
+      });
+    }
+    if (error instanceof TrackNotFoundError) {
+      return reply.status(404).send({
+        code: 'TRACK_NOT_FOUND',
+        error: error.message,
+        statusCode: 404,
       });
     }
     if (error instanceof ZodError) {
@@ -101,6 +111,10 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   });
   await app.register(registerCatalogRoutes, {
     catalog: options.catalog,
+    tokenService: options.tokenService,
+  });
+  await app.register(registerFavoritesRoutes, {
+    favorites: options.favorites,
     tokenService: options.tokenService,
   });
   await app.register(registerLibraryRoutes, {
