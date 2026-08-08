@@ -7,6 +7,7 @@ import '../data/session_store.dart';
 import '../domain/auth_session.dart';
 import '../../library/domain/catalog_track.dart';
 import '../../player/domain/playback_source.dart';
+import '../../settings/domain/artwork_lookup_progress.dart';
 import '../../user_data/domain/user_data_models.dart';
 
 enum AuthStatus { restoring, signedOut, authenticating, signedIn }
@@ -308,6 +309,28 @@ final class AuthController extends ChangeNotifier {
       final removed = _artworkCache.remove(oldest);
       _artworkCacheBytes -= removed?.lengthInBytes ?? 0;
     }
+  }
+
+  Future<ArtworkLookupProgress> getArtworkLookupStatus() {
+    final c = _activeCredentials();
+    return api.getArtworkLookupStatus(
+      accessCode: c.accessCode,
+      accessToken: c.accessToken,
+    );
+  }
+
+  Future<ArtworkLookupProgress> startArtworkLookup({required bool retry}) {
+    final c = _activeCredentials();
+    return api.startArtworkLookup(
+      retry: retry,
+      accessCode: c.accessCode,
+      accessToken: c.accessToken,
+    );
+  }
+
+  void invalidateArtworkCache() {
+    _artworkCache.clear();
+    _artworkCacheBytes = 0;
   }
 
   Future<BrainGraph> getBrainGraph() {

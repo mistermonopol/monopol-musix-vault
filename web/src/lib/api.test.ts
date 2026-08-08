@@ -147,6 +147,21 @@ describe('user data API', () => {
     ]);
   });
 
+  it('gets and starts admin artwork lookup with the retry option', async () => {
+    const progress = { attempted: 0, coversApplied: 0, errors: [], failed: 0, finishedAt: null, matched: 0, noCover: 0, noMatch: 0, queued: 3, startedAt: '2026-08-08T12:00:00.000Z', state: 'running', tracksUpdated: 0 };
+    const { api, fetchMock } = await authenticatedApi([jsonResponse(progress), jsonResponse(progress, 202)]);
+
+    await expect(api.getArtworkLookupStatus()).resolves.toEqual(progress);
+    await expect(api.startArtworkLookup(true)).resolves.toEqual(progress);
+
+    expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/admin/artwork/lookup');
+    expect(fetchMock.mock.calls[1]?.[1]?.method).toBeUndefined();
+    expect(fetchMock.mock.calls[2]?.[0]).toBe('/api/admin/artwork/lookup');
+    expect(fetchMock.mock.calls[2]?.[1]?.method).toBe('POST');
+    expect(fetchMock.mock.calls[2]?.[1]?.body).toBe(JSON.stringify({ retry: true }));
+    expect(new Headers(fetchMock.mock.calls[2]?.[1]?.headers).get('Authorization')).toBe('Bearer access-token');
+  });
+
   it('transfers a queue without requesting autoplay and loads the graph', async () => {
     const queue = { deviceId: 'target', items: ['track'], currentIndex: 0, positionSeconds: 3, updatedAt: '' };
     const graph = { nodes: [{ id: 'track:1', label: 'One', type: 'track', properties: { album: 'First', year: 2026 } }], edges: [] };

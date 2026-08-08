@@ -45,6 +45,8 @@ The exporter does not run Git commands or push credentials. Synchronizing the pe
 - `PUT /favorites/tracks/:trackId` idempotently favorites an available track and returns the favorite; missing tracks return `404`.
 - `DELETE /favorites/tracks/:trackId` idempotently removes a favorite and returns `204`.
 - `POST /library/scan` performs an authenticated incremental scan of the configured library.
+- `POST /admin/artwork/lookup` starts an admin-only, non-blocking missing-cover run. The optional body is `{ retry: boolean }`; `retry: true` reconsiders albums with cached attempts. Returns `202` with current progress, `409` while a run is active, or `503` when disabled.
+- `GET /admin/artwork/lookup` returns the admin-only in-process job status and path-free progress counts/errors.
 - `POST /brain/sync` writes catalog notes and relationships into the Obsidian vault (admin only).
 - `GET /brain/graph` returns the current user's `{ nodes: BrainNode[], edges: BrainEdge[] }` graph from PostgreSQL.
 - `GET /listening/recent?limit=25` returns `{ items }`; `limit` is 1–100.
@@ -67,7 +69,13 @@ Playlist responses have `{ id, name, description, createdAt, updatedAt, items }`
 
 ## Embedded artwork
 
-Scans persist the first safe embedded JPEG, PNG, or WebP picture for each changed track. Declared MIME and file signatures must agree; empty and images larger than 5 MiB are ignored, and the database repeats the MIME and size constraints. Rescanning a changed track removes stale artwork when none is present. `GET /tracks/:trackId/artwork` requires both `X-Access-Code` and `Authorization: Bearer <access-token>` (secrets are never accepted in URLs), returns the raw bytes with `Content-Type`, `Content-Length`, `Cache-Control: private, max-age=86400`, and `X-Content-Type-Options: nosniff`, and returns the path-free `ARTWORK_NOT_FOUND` response for missing or unavailable tracks. Catalog and favorite track objects include `hasArtwork: boolean` so Web and Flutter clients can avoid speculative requests.
+Scans persist the first safe embedded JPEG, PNG, or WebP picture for each changed track. Declared MIME and file signatures must agree; empty and images larger than 5 MiB are ignored, and the database repeats the MIME and size constraints. Embedded artwork always replaces external artwork. Rescanning a changed track without embedded art removes stale embedded artwork but preserves MusicBrainz artwork. `GET /tracks/:trackId/artwork` requires both `X-Access-Code` and `Authorization: Bearer <access-token>` (secrets are never accepted in URLs), returns the raw bytes with `Content-Type`, `Content-Length`, `Cache-Control: private, max-age=86400`, and `X-Content-Type-Options: nosniff`, and returns the path-free `ARTWORK_NOT_FOUND` response for missing or unavailable tracks. Catalog and favorite track objects include `hasArtwork: boolean` so Web and Flutter clients can avoid speculative requests.
+
+## Missing-cover lookup
+
+Missing-cover lookup is explicit and never runs as part of a library scan. Set `ARTWORK_LOOKUP_ENABLED=true` to enable admin-triggered runs. `MUSICBRAINZ_USER_AGENT` defaults to `MonopolMusixVault/0.4.0 (https://vault.monopol-ai.de; derdildi@gmail.com)` and should identify the deployment; MusicBrainz requires a meaningful User-Agent but no API key. `ARTWORK_LOOKUP_REQUEST_INTERVAL_MS` defaults to and cannot be lower than `1100`, `ARTWORK_LOOKUP_BATCH_SIZE` defaults to `50` (maximum `500`), and `ARTWORK_LOOKUP_TIMEOUT_MS` defaults to `10000`.
+
+Each run selects distinct albums with available tracks missing artwork and no cached attempt, up to the configured batch bound. It searches MusicBrainz release groups by album, album artist, and year, requires score `>= 90`, exact normalized album and artist text, and a compatible year when supplied. Cover Art Archive `front-500` downloads permit only manually validated HTTPS redirects to Cover Art Archive or Internet Archive hosts, enforce the timeout and 5 MiB limit, and require matching JPEG, PNG, or WebP MIME/signature. A matched cover is inserted only for still-missing tracks in that album, with source, release-group MBID, score, and provenance. Successes and failures are cached per album; pass `{ "retry": true }` for an explicit retry. External errors remain per-item and status responses never include filesystem paths.
 
 ## Audio streaming
 

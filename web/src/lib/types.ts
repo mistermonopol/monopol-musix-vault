@@ -42,6 +42,23 @@ export interface ScanResult {
   readonly failed: number;
 }
 
+export type ArtworkLookupState = 'idle' | 'running' | 'completed';
+
+export interface ArtworkLookupProgress {
+  readonly attempted: number;
+  readonly coversApplied: number;
+  readonly errors: readonly string[];
+  readonly failed: number;
+  readonly finishedAt: string | null;
+  readonly matched: number;
+  readonly noCover: number;
+  readonly noMatch: number;
+  readonly queued: number;
+  readonly startedAt: string | null;
+  readonly state: ArtworkLookupState;
+  readonly tracksUpdated: number;
+}
+
 export type ListeningEventType = 'started' | 'progress' | 'paused' | 'completed';
 
 export interface ListeningPosition {

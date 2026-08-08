@@ -364,6 +364,103 @@ void main() {
     expect(result.errors.single.noteType, 'track');
   });
 
+  test('gets and starts admin artwork lookup with exact contract', () async {
+    var requestIndex = 0;
+    final client = ApiClient(
+      baseUrl: Uri.parse('https://vault.example.test/api/'),
+      httpClient: MockClient((request) async {
+        requestIndex++;
+        expect(request.url.path, '/api/admin/artwork/lookup');
+        expect(request.headers['X-Access-Code'], 'code');
+        expect(request.headers['Authorization'], 'Bearer token');
+        if (requestIndex == 1) {
+          expect(request.method, 'GET');
+          return http.Response(
+            jsonEncode({
+              'state': 'idle',
+              'queued': 0,
+              'attempted': 0,
+              'matched': 0,
+              'coversApplied': 0,
+              'tracksUpdated': 0,
+              'noMatch': 0,
+              'noCover': 0,
+              'failed': 0,
+              'errors': <String>[],
+              'startedAt': null,
+              'finishedAt': null,
+            }),
+            200,
+          );
+        }
+        expect(request.method, 'POST');
+        expect(jsonDecode(request.body), {'retry': true});
+        return http.Response(
+          jsonEncode({
+            'state': 'running',
+            'queued': 12,
+            'attempted': 3,
+            'matched': 2,
+            'coversApplied': 1,
+            'tracksUpdated': 4,
+            'noMatch': 1,
+            'noCover': 0,
+            'failed': 0,
+            'errors': <String>[],
+            'startedAt': '2026-08-08T12:00:00.000Z',
+            'finishedAt': null,
+          }),
+          202,
+        );
+      }),
+    );
+
+    final initial = await client.getArtworkLookupStatus(
+      accessCode: 'code',
+      accessToken: 'token',
+    );
+    final running = await client.startArtworkLookup(
+      retry: true,
+      accessCode: 'code',
+      accessToken: 'token',
+    );
+
+    expect(initial.state.name, 'idle');
+    expect(running.isRunning, isTrue);
+    expect(running.queued, 12);
+    expect(running.attempted, 3);
+    expect(running.coversApplied, 1);
+    expect(running.startedAt, DateTime.utc(2026, 8, 8, 12));
+  });
+
+  test('artwork lookup exposes disabled API errors', () async {
+    final client = ApiClient(
+      baseUrl: Uri.parse('https://vault.example.test/api'),
+      httpClient: MockClient(
+        (_) async => http.Response(
+          jsonEncode({
+            'error': 'Artwork lookup is disabled',
+            'code': 'ARTWORK_LOOKUP_DISABLED',
+          }),
+          503,
+        ),
+      ),
+    );
+
+    await expectLater(
+      client.startArtworkLookup(
+        retry: false,
+        accessCode: 'code',
+        accessToken: 'token',
+      ),
+      throwsA(
+        isA<ApiException>()
+            .having((error) => error.statusCode, 'statusCode', 503)
+            .having((error) => error.code, 'code', 'ARTWORK_LOOKUP_DISABLED'),
+      ),
+    );
+  });
+
   test('brain sync exposes API status, code, and message', () async {
     final client = ApiClient(
       baseUrl: Uri.parse('https://vault.example.test/api'),

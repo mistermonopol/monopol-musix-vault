@@ -124,13 +124,14 @@ export class PostgresMusicScanRepository implements MusicScanRepository {
       if (saved === undefined) throw new Error(`Failed to save track: ${track.relativePath}`);
 
       if (metadata.artwork === null) {
-        await transaction`DELETE FROM track_artwork WHERE track_id = ${saved.id}`;
+        await transaction`DELETE FROM track_artwork WHERE track_id = ${saved.id} AND source = 'embedded'`;
       } else {
         await transaction`
-          INSERT INTO track_artwork (track_id, mime_type, data)
-          VALUES (${saved.id}, ${metadata.artwork.mimeType}, ${metadata.artwork.data})
+          INSERT INTO track_artwork (track_id, mime_type, data, source, musicbrainz_release_group_id, match_score, provenance)
+          VALUES (${saved.id}, ${metadata.artwork.mimeType}, ${metadata.artwork.data}, 'embedded', null, null, null)
           ON CONFLICT (track_id) DO UPDATE SET
-            mime_type = EXCLUDED.mime_type, data = EXCLUDED.data, updated_at = now()
+            mime_type = EXCLUDED.mime_type, data = EXCLUDED.data, source = 'embedded',
+            musicbrainz_release_group_id = null, match_score = null, provenance = null, updated_at = now()
         `;
       }
 

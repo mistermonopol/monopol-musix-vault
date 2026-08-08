@@ -17,6 +17,7 @@ export default function App() {
   const [track, setTrack] = useState<Track | null>(null);
   const [view, setView] = useState<VaultView>('library');
   const [uiSettings, setUiSettings] = useState<UiSettings>(getUiSettings);
+  const [libraryRevision, setLibraryRevision] = useState(0);
   const [path, setPath] = useState<ThemePath>(() =>
     resolveThemePath(window.location.pathname, getSavedThemePath()),
   );
@@ -25,6 +26,7 @@ export default function App() {
   const updateUiSettings = useCallback((settings: UiSettings) => {
     saveUiSettings(settings); setUiSettings(settings);
   }, []);
+  const refreshLibrary = useCallback(() => setLibraryRevision((revision) => revision + 1), []);
 
   const navigate = useCallback((nextPath: ThemePath) => {
     if (window.location.pathname !== nextPath) window.history.pushState(null, '', nextPath);
@@ -54,5 +56,5 @@ export default function App() {
 
   if (restoring) return <main className="boot" aria-label="Restoring session"><div className="brand-mark"><span>m</span></div><p>Opening your vault…</p></main>;
   if (session === null) return <><AuthScreen onAuthenticated={setSession} /><DesignMenu activePath={path} onNavigate={navigate} /></>;
-  return <div className={`app theme-${theme.id}${uiSettings.denseLayout ? ' dense-layout' : ''}`}><VaultNavigation active={view} onNavigate={setView} />{view === 'library' ? <Library user={session.user} theme={theme} currentTrack={track} onPlay={setTrack} onLogout={() => void logout().finally(() => { setSession(null); setTrack(null); })} /> : view === 'settings' ? <SettingsView user={session.user} theme={theme} uiSettings={uiSettings} onUiSettingsChange={updateUiSettings} onThemeChange={navigate} onNavigate={setView} /> : <VaultViewContent view={view} user={session.user} currentTrack={track} onPlay={setTrack} />}<Player track={track} theme={theme.id} /><DesignMenu activePath={path} onNavigate={navigate} /></div>;
+  return <div className={`app theme-${theme.id}${uiSettings.denseLayout ? ' dense-layout' : ''}`}><VaultNavigation active={view} onNavigate={setView} />{view === 'library' ? <Library key={libraryRevision} user={session.user} theme={theme} currentTrack={track} onPlay={setTrack} onLogout={() => void logout().finally(() => { setSession(null); setTrack(null); })} /> : view === 'settings' ? <SettingsView user={session.user} theme={theme} uiSettings={uiSettings} onUiSettingsChange={updateUiSettings} onThemeChange={navigate} onNavigate={setView} onLibraryRefresh={refreshLibrary} /> : <VaultViewContent view={view} user={session.user} currentTrack={track} onPlay={setTrack} />}<Player track={track} theme={theme.id} /><DesignMenu activePath={path} onNavigate={navigate} /></div>;
 }

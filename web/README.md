@@ -34,7 +34,7 @@ Production hosting must retain the existing SPA fallback to `index.html` for all
 
 Authenticated users can open **Settings** from the gear entry in the vault navigation. The view shows the session email and role, the active theme, and safe same-origin API route information; it never displays access codes, tokens, cookies, or backend secrets. Theme selection is available as a shortcut, and the dense-layout preference is stored locally under `mmv.ui-settings`.
 
-Users whose session role is exactly `admin` also receive Brain maintenance controls and detailed sync counts/errors. Brain Sync uses the existing `POST /api/brain/sync` client operation, and the graph links reload data when the Brain view opens. Mutation controls are hidden from all other roles, including in the Brain view; backend authorization remains authoritative.
+Users whose session role is exactly `admin` also receive Brain maintenance controls and automatic missing-cover lookup with live progress counts. Brain Sync uses `POST /api/brain/sync`; cover lookup uses `POST /api/admin/artwork/lookup` and polls `GET /api/admin/artwork/lookup`. The library refreshes after completion. Mutation controls are hidden from all other roles, including in the Brain view; backend authorization remains authoritative.
 
 ## Commands
 
@@ -60,6 +60,8 @@ All client requests use the `/api` browser prefix. Vite and nginx remove that pr
 | `GET` | `/api/tracks/:id/artwork` | Fetch embedded JPEG, PNG, or WebP cover bytes |
 | `GET` | `/api/brain/graph` | Load the current user's music relationship graph |
 | `POST` | `/api/brain/sync` | Admin-only Brain/Obsidian sync |
+| `GET` | `/api/admin/artwork/lookup` | Read admin missing-cover job status |
+| `POST` | `/api/admin/artwork/lookup` | Start admin missing-cover job |
 
 Auth responses must be `{ accessToken, refreshToken, user }` and establish the HttpOnly cookie used by the stream route. The catalog endpoint should return `{ items, total }`; array and `{ tracks }` responses are also accepted for compatibility. Each track must have `id`, `title`, and `hasArtwork`. Artist strings or `{ name }` objects and album strings or `{ title }` objects are normalized by the client. Brain nodes include `id`, `label`, `type`, and scalar `properties`; supported node types are track, artist, album, genre, playlist, and favorites. The Brain view searches labels and metadata, filters by node type, shows typed connections, and exposes sync status/errors.
 

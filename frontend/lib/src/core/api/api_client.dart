@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../../features/auth/domain/auth_session.dart';
 import '../../features/library/domain/catalog_track.dart';
+import '../../features/settings/domain/artwork_lookup_progress.dart';
 import '../../features/user_data/domain/user_data_models.dart';
 
 final class ApiException implements Exception {
@@ -348,6 +349,30 @@ final class ApiClient {
       throw const ApiException('Invalid artwork response', statusCode: 502);
     }
     return response.bodyBytes;
+  }
+
+  Future<ArtworkLookupProgress> getArtworkLookupStatus({
+    required String accessCode,
+    required String accessToken,
+  }) async {
+    final response = await _httpClient.get(
+      _resolve('/admin/artwork/lookup'),
+      headers: _headers(accessCode, accessToken: accessToken),
+    );
+    return ArtworkLookupProgress.fromJson(_decode(response));
+  }
+
+  Future<ArtworkLookupProgress> startArtworkLookup({
+    required bool retry,
+    required String accessCode,
+    required String accessToken,
+  }) async {
+    final response = await _httpClient.post(
+      _resolve('/admin/artwork/lookup'),
+      headers: _headers(accessCode, accessToken: accessToken),
+      body: jsonEncode({'retry': retry}),
+    );
+    return ArtworkLookupProgress.fromJson(_decode(response));
   }
 
   Future<BrainGraph> getBrainGraph({

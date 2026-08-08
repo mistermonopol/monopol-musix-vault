@@ -1,4 +1,5 @@
 import { buildApp } from './app.js';
+import { ArtworkLookupService } from './application/artwork-lookup.js';
 import { AuthService } from './application/auth-service.js';
 import { CatalogQueryService } from './application/catalog-query.js';
 import { MusicScanner } from './application/music-scanner.js';
@@ -15,6 +16,8 @@ import { loadConfig } from './infrastructure/config.js';
 import { runMigrations } from './infrastructure/database/migrate.js';
 import { PostgresDatabase } from './infrastructure/database/postgres-database.js';
 import { PostgresTrackFavoritesRepository } from './infrastructure/favorites/postgres-track-favorites-repository.js';
+import { MusicBrainzHttpArtworkProvider } from './infrastructure/musicbrainz/musicbrainz-artwork-provider.js';
+import { PostgresArtworkLookupRepository } from './infrastructure/musicbrainz/postgres-artwork-lookup-repository.js';
 import { FilesystemAudioDiscovery } from './infrastructure/scanner/filesystem-audio-discovery.js';
 import { MusicMetadataReader } from './infrastructure/scanner/music-metadata-reader.js';
 import { FilesystemObsidianVaultExporter } from './infrastructure/obsidian/filesystem-vault-exporter.js';
@@ -50,6 +53,16 @@ async function start(): Promise<void> {
     tokenService,
   );
   const artwork = new TrackArtworkService(new PostgresTrackArtworkRepository(database.client));
+  const artworkLookup = new ArtworkLookupService(
+    new PostgresArtworkLookupRepository(database.client),
+    new MusicBrainzHttpArtworkProvider(
+      config.artworkLookup.userAgent,
+      config.artworkLookup.requestIntervalMs,
+      config.artworkLookup.timeoutMs,
+    ),
+    config.artworkLookup.enabled,
+    config.artworkLookup.batchSize,
+  );
   const catalog = new CatalogQueryService(
     new PostgresCatalogRepository(database.client),
   );
@@ -79,6 +92,7 @@ async function start(): Promise<void> {
     authRepository,
     authService,
     artwork,
+    artworkLookup,
     catalog,
     config,
     databaseHealth: database,

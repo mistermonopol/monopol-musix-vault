@@ -2,6 +2,11 @@ import { z } from 'zod';
 
 const environmentSchema = z.object({
   API_ACCESS_CODE: z.string().min(16),
+  ARTWORK_LOOKUP_BATCH_SIZE: z.coerce.number().int().min(1).max(500).default(50),
+  ARTWORK_LOOKUP_ENABLED: z.stringbool().default(false),
+  ARTWORK_LOOKUP_REQUEST_INTERVAL_MS: z.coerce.number().int().min(1100).max(60_000).default(1100),
+  ARTWORK_LOOKUP_TIMEOUT_MS: z.coerce.number().int().min(1000).max(60_000).default(10_000),
+  MUSICBRAINZ_USER_AGENT: z.string().min(10).default('MonopolMusixVault/0.4.0 (https://vault.monopol-ai.de; derdildi@gmail.com)'),
   AUTH_ACCESS_TOKEN_MINUTES: z.coerce.number().int().min(1).max(60).default(15),
   AUTH_REFRESH_TOKEN_DAYS: z.coerce.number().int().min(1).max(90).default(30),
   AUTH_SECRET: z.string().min(32),
@@ -38,8 +43,17 @@ export interface DatabaseConfig {
   readonly user: string;
 }
 
+export interface ArtworkLookupConfig {
+  readonly batchSize: number;
+  readonly enabled: boolean;
+  readonly requestIntervalMs: number;
+  readonly timeoutMs: number;
+  readonly userAgent: string;
+}
+
 export interface AppConfig {
   readonly accessCode: string;
+  readonly artworkLookup: ArtworkLookupConfig;
   readonly auth: AuthConfig;
   readonly database: DatabaseConfig;
   readonly HOST: string;
@@ -59,6 +73,13 @@ export function loadConfig(environment: NodeJS.ProcessEnv): AppConfig {
 
   return {
     accessCode: result.data.API_ACCESS_CODE,
+    artworkLookup: {
+      batchSize: result.data.ARTWORK_LOOKUP_BATCH_SIZE,
+      enabled: result.data.ARTWORK_LOOKUP_ENABLED,
+      requestIntervalMs: result.data.ARTWORK_LOOKUP_REQUEST_INTERVAL_MS,
+      timeoutMs: result.data.ARTWORK_LOOKUP_TIMEOUT_MS,
+      userAgent: result.data.MUSICBRAINZ_USER_AGENT,
+    },
     auth: {
       accessTokenMinutes: result.data.AUTH_ACCESS_TOKEN_MINUTES,
       refreshTokenDays: result.data.AUTH_REFRESH_TOKEN_DAYS,

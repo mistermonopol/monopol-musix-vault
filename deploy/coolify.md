@@ -30,7 +30,7 @@ Monopol Musix Vault uses the root `compose.yaml` as its Coolify deployment defin
    `--ignore-existing` deliberately preserves notes already edited or generated on the VPS. Do not repeat this as a destructive deployment copy. The API writes catalog notes through `POST /brain/sync`; external Git synchronization remains a separate least-privilege host operation.
 7. Attach persistent storage to the `postgres_data` volume.
 8. Assign the public domain to the `web` service on its internal port `80`. Do not publish host ports; Coolify's proxy reaches the service through its Docker network, allowing zero-downtime replacements. The web container proxies same-origin `/api` requests to the private API service.
-9. Deploy and wait for PostgreSQL, API, and web health checks to pass. After migration `009_create_track_artwork.sql` is applied, run one full library scan so embedded JPEG/PNG/WebP covers are validated and persisted for Web and Flutter.
+9. Deploy and wait for PostgreSQL, API, and web health checks to pass. Migrations `009_create_track_artwork.sql` and `010_create_artwork_lookup.sql` add embedded and external artwork storage. Run one full library scan first, then start the missing-cover lookup from the admin Settings area in Web or Flutter.
 
 No database port should be exposed publicly. Route normal users to the `web` service; direct API publication is optional for future native clients and should use a separate API hostname when enabled.
 
@@ -55,6 +55,14 @@ Configure the Coolify proxy to preserve `Authorization`, `Range`, `If-Range`, `C
 `POST /brain/sync` is admin-only and exports PostgreSQL catalog entities into the persistent `/brain` vault. Both Web and Flutter expose an explicit sync button. `GET /brain/graph` exposes a normalized, authenticated and per-user graph projection to Web and Flutter, including catalog metadata, albums, release years, favorites, and playlist membership. Clients never receive filesystem paths, raw vault HTML, plugin code, or an iframe into Obsidian.
 
 The graph API currently projects catalog relationships from PostgreSQL so reads remain stable while Markdown files are being written. The Markdown vault remains the persistent human-editable layer on `/srv/monopol-musix-vault/brain`. Do not place Git credentials in the API container; use a dedicated host job later for Git pull/commit/push and serialize it with brain synchronization.
+
+## Automatic missing-cover lookup
+
+Production Compose enables the bounded lookup job by default. It identifies albums without embedded artwork, queries MusicBrainz at no more than one request per 1100 ms, and downloads validated front-cover bytes from trusted Cover Art Archive/Internet Archive hosts. The public `MUSICBRAINZ_USER_AGENT` contact identifies this deployment; it is not a credential.
+
+Administrators can start and monitor the background job from the gear/Settings area in Web and Flutter. Re-running without **Retry** skips cached matches, no-cover results, and failures. Embedded artwork always wins, and later scans do not remove externally retrieved covers.
+
+Optional Coolify variables are `ARTWORK_LOOKUP_ENABLED`, `ARTWORK_LOOKUP_BATCH_SIZE`, `ARTWORK_LOOKUP_REQUEST_INTERVAL_MS`, `ARTWORK_LOOKUP_TIMEOUT_MS`, and `MUSICBRAINZ_USER_AGENT`. Keep the interval at `1100` ms or higher to respect MusicBrainz rate limits.
 
 ## Backups
 

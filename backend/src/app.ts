@@ -7,6 +7,7 @@ import Fastify, {
 import { ZodError } from 'zod';
 
 import { AuthError } from './application/auth-errors.js';
+import type { ArtworkLookupOperations } from './application/artwork-lookup.js';
 import type { AuthRepository, TokenService } from './application/auth-ports.js';
 import type { AuthOperations } from './application/auth-service.js';
 import type { CatalogQueryOperations } from './application/catalog-query.js';
@@ -22,6 +23,7 @@ import { TrackNotFoundError, type TrackFavoritesOperations } from './application
 import { createAccessCodeGate } from './infrastructure/access-code.js';
 import type { AppConfig } from './infrastructure/config.js';
 import { SystemClock } from './infrastructure/system-clock.js';
+import { registerAdminArtworkRoutes } from './interfaces/http/admin-artwork-routes.js';
 import { registerArtworkRoutes } from './interfaces/http/artwork-routes.js';
 import { registerAuthRoutes } from './interfaces/http/auth-routes.js';
 import { registerBrainGraphRoutes } from './interfaces/http/brain-graph-routes.js';
@@ -37,6 +39,7 @@ export interface BuildAppOptions {
   readonly authRepository: AuthRepository;
   readonly authService: AuthOperations;
   readonly artwork: TrackArtworkOperations;
+  readonly artworkLookup: ArtworkLookupOperations;
   readonly catalog: CatalogQueryOperations;
   readonly config: AppConfig;
   readonly databaseHealth: DatabaseHealth;
@@ -123,6 +126,10 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   });
   await app.register(registerArtworkRoutes, {
     artwork: options.artwork,
+    tokenService: options.tokenService,
+  });
+  await app.register(registerAdminArtworkRoutes, {
+    artworkLookup: options.artworkLookup,
     tokenService: options.tokenService,
   });
   await app.register(registerCatalogRoutes, {

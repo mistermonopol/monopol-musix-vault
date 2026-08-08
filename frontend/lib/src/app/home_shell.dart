@@ -28,6 +28,7 @@ final class HomeShell extends StatefulWidget {
 final class _HomeShellState extends State<HomeShell> {
   int _selectedIndex = 0;
   late final _ListeningReporter _reporter;
+  int _libraryRevision = 0;
   static const _destinations = [
     NavigationDestination(
       icon: Icon(Icons.library_music_outlined),
@@ -74,6 +75,7 @@ final class _HomeShellState extends State<HomeShell> {
   Widget build(BuildContext context) {
     final pages = [
       LibraryScreen(
+        key: ValueKey(_libraryRevision),
         authController: widget.authController,
         audioController: widget.audioController,
       ),
@@ -162,6 +164,10 @@ final class _HomeShellState extends State<HomeShell> {
           onOpenBrain: () {
             Navigator.of(settingsContext).pop();
             _select(4);
+          },
+          onArtworkLookupCompleted: () {
+            widget.authController.invalidateArtworkCache();
+            setState(() => _libraryRevision++);
           },
         ),
       ),

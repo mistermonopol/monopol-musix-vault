@@ -1,4 +1,4 @@
-import type { AuthSession, BrainGraph, BrainSyncResult, Device, ListeningEventType, ListeningPosition, Playlist, QueueSnapshot, RecentListeningItem, ScanResult, Track, TrackPage } from './types';
+import type { ArtworkLookupProgress, AuthSession, BrainGraph, BrainSyncResult, Device, ListeningEventType, ListeningPosition, Playlist, QueueSnapshot, RecentListeningItem, ScanResult, Track, TrackPage } from './types';
 
 const REFRESH_KEY = 'mmv.refresh-token';
 const ACCESS_CODE_KEY = 'mmv.access-code';
@@ -194,6 +194,17 @@ export function scanLibrary(): Promise<ScanResult> {
 
 export function syncObsidianBrain(): Promise<BrainSyncResult> {
   return request<BrainSyncResult>('/brain/sync', { method: 'POST' });
+}
+
+export function getArtworkLookupStatus(): Promise<ArtworkLookupProgress> {
+  return request<ArtworkLookupProgress>('/admin/artwork/lookup');
+}
+
+export function startArtworkLookup(retry: boolean): Promise<ArtworkLookupProgress> {
+  return request<ArtworkLookupProgress>('/admin/artwork/lookup', {
+    method: 'POST',
+    body: JSON.stringify({ retry }),
+  });
 }
 
 export async function getTrackArtwork(trackId: string, retry = true): Promise<Blob | null> {

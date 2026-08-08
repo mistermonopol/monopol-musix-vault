@@ -8,6 +8,7 @@ const accessCode = 'test-access-code-at-least-16';
 
 const config: AppConfig = {
   accessCode,
+  artworkLookup: { batchSize: 50, enabled: true, requestIntervalMs: 1100, timeoutMs: 10000, userAgent: 'test-agent/1.0 (test@example.com)' },
   auth: {
     accessTokenMinutes: 15,
     refreshTokenDays: 30,
@@ -32,7 +33,7 @@ const config: AppConfig = {
 
 const authDependencies: Pick<
   BuildAppOptions,
-  'authRepository' | 'authService' | 'artwork' | 'catalog' | 'devices' | 'favorites' | 'graph' | 'listening' | 'obsidianSync' | 'playlists' | 'queues' | 'scanner' | 'streaming' | 'tokenService'
+  'authRepository' | 'authService' | 'artwork' | 'artworkLookup' | 'catalog' | 'devices' | 'favorites' | 'graph' | 'listening' | 'obsidianSync' | 'playlists' | 'queues' | 'scanner' | 'streaming' | 'tokenService'
 > = {
   authRepository: {
     bootstrapAdmin: async () => null,
@@ -43,6 +44,10 @@ const authDependencies: Pick<
     rotateRefreshSession: async () => null,
   },
   artwork: { get: async () => null },
+  artworkLookup: {
+    start: () => ({ attempted: 0, coversApplied: 0, errors: [], failed: 0, finishedAt: null, matched: 0, noCover: 0, noMatch: 0, queued: 0, startedAt: new Date(0).toISOString(), state: 'running', tracksUpdated: 0 }),
+    status: () => ({ attempted: 0, coversApplied: 0, errors: [], failed: 0, finishedAt: null, matched: 0, noCover: 0, noMatch: 0, queued: 0, startedAt: null, state: 'idle', tracksUpdated: 0 }),
+  },
   authService: {
     bootstrap: async () => {
       throw new Error('Not used');
@@ -368,6 +373,22 @@ describe('HTTP application', () => {
       error: 'Obsidian vault is not writable',
       statusCode: 503,
     });
+  });
+
+  it('protects artwork lookup as admin-only and exposes start/status', async () => {
+    const userApp = await buildApp({ ...authDependencies, config, databaseHealth: databaseHealth(true), tokenService: { ...authDependencies.tokenService, verifyAccessToken: async () => ({ role: 'user', userId: 'test' }) } });
+    apps.push(userApp);
+    const headers = { authorization: 'Bearer valid', 'x-access-code': accessCode };
+    expect((await userApp.inject({ headers, method: 'POST', url: '/admin/artwork/lookup' })).statusCode).toBe(403);
+
+    const adminApp = await buildApp({ ...authDependencies, config, databaseHealth: databaseHealth(true) });
+    apps.push(adminApp);
+    const started = await adminApp.inject({ body: { retry: true }, headers, method: 'POST', url: '/admin/artwork/lookup' });
+    expect(started.statusCode).toBe(202);
+    expect(started.json()).toMatchObject({ state: 'running' });
+    const status = await adminApp.inject({ headers, method: 'GET', url: '/admin/artwork/lookup' });
+    expect(status.statusCode).toBe(200);
+    expect(status.json()).toMatchObject({ state: 'idle' });
   });
 
   it('accepts the correct access code', async () => {

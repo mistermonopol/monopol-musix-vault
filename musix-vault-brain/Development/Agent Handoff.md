@@ -45,6 +45,7 @@ Backend and clients share no source code. They communicate through the HTTP API.
 15. Enriched per-user Brain graph with track, artist, album, genre, playlist, favorite, release metadata, and native Web/Flutter renderers
 16. Validated embedded JPEG/PNG/WebP artwork persisted during scans and fetched through protected byte APIs
 17. Role-aware Settings/Admin areas in Web and Flutter with Brain Sync controls
+18. Automatic missing-cover retrieval through MusicBrainz and Cover Art Archive with admin progress controls
 
 ## Current repository state
 
@@ -141,7 +142,7 @@ f6005a3 Prevent Brain sync timeouts
 Current Android release:
 
 ```text
-Version 0.4.0 (Build 4)
+Version 0.5.0 (Build 5)
 frontend/build/app/outputs/flutter-apk/app-release.apk
 ```
 
@@ -197,6 +198,7 @@ Before handoff, the backend passed strict TypeScript, production build, and 107 
 ### Library and metadata
 
 - [x] Extract, persist, and serve embedded cover artwork with bounded size, signature checks, MIME validation, and protected client fetching.
+- [x] Add bounded automatic lookup for missing covers through MusicBrainz and Cover Art Archive.
 - [ ] Add album, artist, and genre detail endpoints.
 - [ ] Add scanner status/history UI and scheduled scans.
 - [ ] Improve moved-file identity detection while handling exact duplicate files intentionally.
