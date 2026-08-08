@@ -116,11 +116,11 @@ The Flutter client implements login and first-admin bootstrap, sends `X-Access-C
 
 PostgreSQL is the system of record for personal state. Track favorites use `user_track_favorites` with per-user uniqueness and cascading user/track references. `GET /favorites/tracks`, `PUT /favorites/tracks/:trackId`, and `DELETE /favorites/tracks/:trackId` require both access code and JWT. Web and Flutter both load this state and perform idempotent optimistic updates, so the same account sees the same favorites after refresh on either client.
 
-The next synchronized state milestone is listening history and resumable playback position, followed by playlists and device/session management. Queue transfer should remain explicit rather than automatically interrupting another device.
+Roadmap 10.2–10.7 is now implemented across PostgreSQL, API, Web, and Flutter: recent listening events, resumable positions, playlists with ordered tracks, device registration/revocation, explicit queue snapshots/transfers with `autoPlay: false`, and a normalized Brain graph. Queue transfer remains a deliberate user action and never interrupts another device automatically.
 
 ## Validation baseline
 
-Before handoff, the backend passed strict TypeScript, production build, and 93 automated tests. The web app passed strict TypeScript, production build, and 20 automated tests. The Flutter client passed `flutter analyze` with no issues, all 6 tests passed, and an Android release APK with the native audio engine built successfully. Production Compose configuration validation also passed. Full container E2E covered PostgreSQL migration, auth rotation, real WAV scanning, PostgreSQL-to-Obsidian export, access-code rejection and acceptance, cookie-authenticated full/ranged streaming, web availability while the API was stopped, sanitized proxy failure responses, API proxy recovery, nginx health, and direct theme-route reloads.
+Before handoff, the backend passed strict TypeScript, production build, and 97 automated tests. The web app passed strict TypeScript, production build, and 24 automated tests. The Flutter client passed `flutter analyze` with no issues, all 9 tests passed, and an Android release APK with the native audio engine built successfully. Production Compose configuration validation also passed. Full container E2E covered PostgreSQL migration, auth rotation, real WAV scanning, PostgreSQL-to-Obsidian export, access-code rejection and acceptance, cookie-authenticated full/ranged streaming, web availability while the API was stopped, sanitized proxy failure responses, API proxy recovery, nginx health, and direct theme-route reloads.
 
 ## Prioritized TODO
 
@@ -180,10 +180,12 @@ Before handoff, the backend passed strict TypeScript, production build, and 93 a
 - [x] Flutter audio player with authenticated range streaming
 - [ ] Full library UI and artwork
 - [ ] Search refinements
-- [ ] Playlists
+- [x] Synchronized playlists with ordered tracks
 - [x] Synchronized per-user favorites in PostgreSQL, API, Web, and Flutter
-- [ ] Recently played, listening history, and resumable playback position
-- [ ] Queue, shuffle, repeat, previous, and next behavior
+- [x] Recently played, listening history, and resumable playback position
+- [x] Device registry and explicit queue snapshot transfer
+- [x] Brain graph views in Web and Flutter through normalized authenticated API JSON
+- [ ] Shuffle and repeat behavior
 - [ ] Final accessibility, responsive, performance, and deployment polish
 
 ## Start-of-session checklist for the next agent

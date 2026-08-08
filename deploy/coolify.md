@@ -18,6 +18,16 @@ Monopol Musix Vault uses the root `compose.yaml` as its Coolify deployment defin
    ```
 
    Compose mounts it at `/brain`. Do not use Coolify's temporary source checkout as the writable vault.
+
+   To seed the persistent VPS vault once from the versioned `musix-vault-brain/` directory, clone or update the repository in an operator-controlled temporary directory and run:
+
+   ```shell
+   sudo rsync -a --ignore-existing /path/to/monopol-musix-vault/musix-vault-brain/ /srv/monopol-musix-vault/brain/
+   sudo chown -R 10001:10001 /srv/monopol-musix-vault/brain
+   sudo chmod -R u+rwX,go-rwx /srv/monopol-musix-vault/brain
+   ```
+
+   `--ignore-existing` deliberately preserves notes already edited or generated on the VPS. Do not repeat this as a destructive deployment copy. The API writes catalog notes through `POST /brain/sync`; external Git synchronization remains a separate least-privilege host operation.
 7. Attach persistent storage to the `postgres_data` volume.
 8. Assign the public domain to the `web` service on its internal port `80`. Do not publish host ports; Coolify's proxy reaches the service through its Docker network, allowing zero-downtime replacements. The web container proxies same-origin `/api` requests to the private API service.
 9. Deploy and wait for PostgreSQL, API, and web health checks to pass.
@@ -39,6 +49,12 @@ Never place the access code in a URL, source code, mobile binary, log, or Git re
 ## Streaming proxy
 
 Configure the Coolify proxy to preserve `Authorization`, `Range`, `If-Range`, `Content-Range`, and `Accept-Ranges` headers. Disable response buffering for `/tracks/*/stream` so audio starts promptly and disconnected clients release backend file handles. Keep proxy read timeouts long enough for large lossless files; do not enable proxy-level public caching because streams are authenticated.
+
+## Brain graph and synchronization
+
+`POST /brain/sync` is admin-only and exports PostgreSQL catalog entities into the persistent `/brain` vault. `GET /brain/graph` exposes a normalized, authenticated graph projection to Web and Flutter. Clients never receive filesystem paths, raw vault HTML, plugin code, or an iframe into Obsidian.
+
+The graph API currently projects catalog relationships from PostgreSQL so reads remain stable while Markdown files are being written. The Markdown vault remains the persistent human-editable layer on `/srv/monopol-musix-vault/brain`. Do not place Git credentials in the API container; use a dedicated host job later for Git pull/commit/push and serialize it with brain synchronization.
 
 ## Backups
 

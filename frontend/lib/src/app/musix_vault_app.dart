@@ -5,7 +5,7 @@ import '../core/config/app_config.dart';
 import '../features/auth/data/session_store.dart';
 import '../features/auth/presentation/auth_controller.dart';
 import '../features/auth/presentation/login_screen.dart';
-import '../features/library/presentation/library_screen.dart';
+import 'home_shell.dart';
 import '../features/player/presentation/audio_player_controller.dart';
 
 final class MusixVaultApp extends StatefulWidget {
@@ -79,7 +79,7 @@ final class _MusixVaultAppState extends State<MusixVaultApp> {
     ),
     AuthStatus.signedOut ||
     AuthStatus.authenticating => LoginScreen(controller: widget.authController),
-    AuthStatus.signedIn => LibraryScreen(
+    AuthStatus.signedIn => HomeShell(
       authController: widget.authController,
       audioController: widget.audioController,
     ),

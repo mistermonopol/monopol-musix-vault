@@ -5,6 +5,7 @@ import '../data/session_store.dart';
 import '../domain/auth_session.dart';
 import '../../library/domain/catalog_track.dart';
 import '../../player/domain/playback_source.dart';
+import '../../user_data/domain/user_data_models.dart';
 
 enum AuthStatus { restoring, signedOut, authenticating, signedIn }
 
@@ -107,6 +108,165 @@ final class AuthController extends ChangeNotifier {
       favorite: favorite,
       accessCode: credentials.accessCode,
       accessToken: credentials.accessToken,
+    );
+  }
+
+  Future<List<RecentListeningItem>> listRecent() {
+    final c = _activeCredentials();
+    return api.listRecent(accessCode: c.accessCode, accessToken: c.accessToken);
+  }
+
+  Future<void> reportListeningEvent(
+    String trackId,
+    ListeningEventType type, {
+    double? positionSeconds,
+  }) {
+    final c = _activeCredentials();
+    return api.reportListeningEvent(
+      trackId: trackId,
+      eventType: type,
+      positionSeconds: positionSeconds,
+      accessCode: c.accessCode,
+      accessToken: c.accessToken,
+    );
+  }
+
+  Future<ListeningPosition> saveListeningPosition(
+    String trackId,
+    double seconds,
+  ) {
+    final c = _activeCredentials();
+    return api.saveListeningPosition(
+      trackId: trackId,
+      positionSeconds: seconds,
+      accessCode: c.accessCode,
+      accessToken: c.accessToken,
+    );
+  }
+
+  Future<List<VaultPlaylist>> listPlaylists() {
+    final c = _activeCredentials();
+    return api.listPlaylists(
+      accessCode: c.accessCode,
+      accessToken: c.accessToken,
+    );
+  }
+
+  Future<VaultPlaylist> createPlaylist(String name, String description) {
+    final c = _activeCredentials();
+    return api.createPlaylist(
+      name: name,
+      description: description,
+      accessCode: c.accessCode,
+      accessToken: c.accessToken,
+    );
+  }
+
+  Future<VaultPlaylist> updatePlaylist(
+    String id,
+    String name,
+    String description,
+  ) {
+    final c = _activeCredentials();
+    return api.updatePlaylist(
+      id: id,
+      name: name,
+      description: description,
+      accessCode: c.accessCode,
+      accessToken: c.accessToken,
+    );
+  }
+
+  Future<VaultPlaylist> replacePlaylistItems(String id, List<String> trackIds) {
+    final c = _activeCredentials();
+    return api.replacePlaylistItems(
+      id: id,
+      trackIds: trackIds,
+      accessCode: c.accessCode,
+      accessToken: c.accessToken,
+    );
+  }
+
+  Future<void> deletePlaylist(String id) {
+    final c = _activeCredentials();
+    return api.deletePlaylist(
+      id: id,
+      accessCode: c.accessCode,
+      accessToken: c.accessToken,
+    );
+  }
+
+  Future<List<VaultDevice>> listDevices() {
+    final c = _activeCredentials();
+    return api.listDevices(
+      accessCode: c.accessCode,
+      accessToken: c.accessToken,
+    );
+  }
+
+  Future<VaultDevice> registerDevice(String name, String kind) {
+    final c = _activeCredentials();
+    return api.registerDevice(
+      name: name,
+      kind: kind,
+      accessCode: c.accessCode,
+      accessToken: c.accessToken,
+    );
+  }
+
+  Future<void> deleteDevice(String id) {
+    final c = _activeCredentials();
+    return api.deleteDevice(
+      id: id,
+      accessCode: c.accessCode,
+      accessToken: c.accessToken,
+    );
+  }
+
+  Future<QueueSnapshot> getQueue(String deviceId) {
+    final c = _activeCredentials();
+    return api.getQueue(
+      deviceId: deviceId,
+      accessCode: c.accessCode,
+      accessToken: c.accessToken,
+    );
+  }
+
+  Future<QueueSnapshot> saveQueue(
+    String deviceId,
+    List<String> items,
+    int? currentIndex,
+    double positionSeconds,
+  ) {
+    final c = _activeCredentials();
+    return api.saveQueue(
+      deviceId: deviceId,
+      items: items,
+      currentIndex: currentIndex,
+      positionSeconds: positionSeconds,
+      accessCode: c.accessCode,
+      accessToken: c.accessToken,
+    );
+  }
+
+  Future<QueueTransferResult> transferQueue(
+    String sourceDeviceId,
+    String targetDeviceId,
+  ) {
+    final c = _activeCredentials();
+    return api.transferQueue(
+      sourceDeviceId: sourceDeviceId,
+      targetDeviceId: targetDeviceId,
+      accessCode: c.accessCode,
+      accessToken: c.accessToken,
+    );
+  }
+
+  Future<BrainGraph> getBrainGraph() {
+    final c = _activeCredentials();
+    return api.getBrainGraph(
+      accessCode: c.accessCode,
+      accessToken: c.accessToken,
     );
   }
 

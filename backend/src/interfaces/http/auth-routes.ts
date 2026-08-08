@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
 import { invalidToken } from '../../application/auth-errors.js';
-import type { AuthRepository, TokenService } from '../../application/auth-ports.js';
+import type { AccessTokenClaims, AuthRepository, TokenService } from '../../application/auth-ports.js';
 import type { AuthOperations, AuthResult } from '../../application/auth-service.js';
 
 const credentialsSchema = z.object({
@@ -22,6 +22,14 @@ export async function authenticate(
   tokenService: TokenService,
   allowStreamCookie = false,
 ): Promise<string> {
+  return (await authenticateClaims(request, tokenService, allowStreamCookie)).userId;
+}
+
+export async function authenticateClaims(
+  request: FastifyRequest,
+  tokenService: TokenService,
+  allowStreamCookie = false,
+): Promise<AccessTokenClaims> {
   const authorization = request.headers.authorization;
   const bearerToken = authorization?.startsWith('Bearer ')
     ? authorization.slice(7)
@@ -36,7 +44,7 @@ export async function authenticate(
   for (const token of candidates) {
     try {
       const claims = await tokenService.verifyAccessToken(token);
-      return claims.userId;
+      return claims;
     } catch {
       // A stale legacy bearer token must not override a valid HttpOnly stream cookie.
     }

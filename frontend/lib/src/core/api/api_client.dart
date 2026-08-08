@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import '../../features/auth/domain/auth_session.dart';
 import '../../features/library/domain/catalog_track.dart';
+import '../../features/user_data/domain/user_data_models.dart';
 
 final class ApiException implements Exception {
   const ApiException(this.message, {required this.statusCode, this.code});
@@ -106,7 +107,250 @@ final class ApiClient {
     }
   }
 
+  Future<List<RecentListeningItem>> listRecent({
+    required String accessCode,
+    required String accessToken,
+    int limit = 25,
+  }) async {
+    final response = await _httpClient.get(
+      _resolve(
+        '/listening/recent',
+      ).replace(queryParameters: {'limit': '$limit'}),
+      headers: _headers(accessCode, accessToken: accessToken),
+    );
+    return _items(_decode(response)).map(RecentListeningItem.fromJson).toList();
+  }
+
+  Future<void> reportListeningEvent({
+    required String trackId,
+    required ListeningEventType eventType,
+    required String accessCode,
+    required String accessToken,
+    double? positionSeconds,
+  }) async {
+    final response = await _httpClient.post(
+      _resolve('/listening/events'),
+      headers: _headers(accessCode, accessToken: accessToken),
+      body: jsonEncode({
+        'trackId': trackId,
+        'eventType': eventType.name,
+        'positionSeconds': ?positionSeconds,
+      }),
+    );
+    _decode(response);
+  }
+
+  Future<ListeningPosition> getListeningPosition({
+    required String trackId,
+    required String accessCode,
+    required String accessToken,
+  }) async {
+    final response = await _httpClient.get(
+      _resolve('/listening/positions/$trackId'),
+      headers: _headers(accessCode, accessToken: accessToken),
+    );
+    return ListeningPosition.fromJson(
+      _decode(response)['position'] as Map<String, Object?>,
+    );
+  }
+
+  Future<ListeningPosition> saveListeningPosition({
+    required String trackId,
+    required double positionSeconds,
+    required String accessCode,
+    required String accessToken,
+  }) async {
+    final response = await _httpClient.put(
+      _resolve('/listening/positions/$trackId'),
+      headers: _headers(accessCode, accessToken: accessToken),
+      body: jsonEncode({'positionSeconds': positionSeconds}),
+    );
+    return ListeningPosition.fromJson(
+      _decode(response)['position'] as Map<String, Object?>,
+    );
+  }
+
+  Future<List<VaultPlaylist>> listPlaylists({
+    required String accessCode,
+    required String accessToken,
+  }) async {
+    final response = await _httpClient.get(
+      _resolve('/playlists'),
+      headers: _headers(accessCode, accessToken: accessToken),
+    );
+    return _items(_decode(response)).map(VaultPlaylist.fromJson).toList();
+  }
+
+  Future<VaultPlaylist> createPlaylist({
+    required String name,
+    required String description,
+    required String accessCode,
+    required String accessToken,
+  }) async {
+    final response = await _httpClient.post(
+      _resolve('/playlists'),
+      headers: _headers(accessCode, accessToken: accessToken),
+      body: jsonEncode({'name': name, 'description': description}),
+    );
+    return VaultPlaylist.fromJson(
+      _decode(response)['playlist'] as Map<String, Object?>,
+    );
+  }
+
+  Future<VaultPlaylist> updatePlaylist({
+    required String id,
+    required String name,
+    required String description,
+    required String accessCode,
+    required String accessToken,
+  }) async {
+    final response = await _httpClient.patch(
+      _resolve('/playlists/$id'),
+      headers: _headers(accessCode, accessToken: accessToken),
+      body: jsonEncode({'name': name, 'description': description}),
+    );
+    return VaultPlaylist.fromJson(
+      _decode(response)['playlist'] as Map<String, Object?>,
+    );
+  }
+
+  Future<VaultPlaylist> replacePlaylistItems({
+    required String id,
+    required List<String> trackIds,
+    required String accessCode,
+    required String accessToken,
+  }) async {
+    final response = await _httpClient.put(
+      _resolve('/playlists/$id/items'),
+      headers: _headers(accessCode, accessToken: accessToken),
+      body: jsonEncode({'trackIds': trackIds}),
+    );
+    return VaultPlaylist.fromJson(
+      _decode(response)['playlist'] as Map<String, Object?>,
+    );
+  }
+
+  Future<void> deletePlaylist({
+    required String id,
+    required String accessCode,
+    required String accessToken,
+  }) => _delete('/playlists/$id', accessCode, accessToken);
+
+  Future<List<VaultDevice>> listDevices({
+    required String accessCode,
+    required String accessToken,
+  }) async {
+    final response = await _httpClient.get(
+      _resolve('/devices'),
+      headers: _headers(accessCode, accessToken: accessToken),
+    );
+    return _items(_decode(response)).map(VaultDevice.fromJson).toList();
+  }
+
+  Future<VaultDevice> registerDevice({
+    required String name,
+    required String kind,
+    required String accessCode,
+    required String accessToken,
+  }) async {
+    final response = await _httpClient.post(
+      _resolve('/devices'),
+      headers: _headers(accessCode, accessToken: accessToken),
+      body: jsonEncode({'name': name, 'kind': kind}),
+    );
+    return VaultDevice.fromJson(
+      _decode(response)['device'] as Map<String, Object?>,
+    );
+  }
+
+  Future<void> deleteDevice({
+    required String id,
+    required String accessCode,
+    required String accessToken,
+  }) => _delete('/devices/$id', accessCode, accessToken);
+
+  Future<QueueSnapshot> getQueue({
+    required String deviceId,
+    required String accessCode,
+    required String accessToken,
+  }) async {
+    final response = await _httpClient.get(
+      _resolve('/queue/$deviceId'),
+      headers: _headers(accessCode, accessToken: accessToken),
+    );
+    return QueueSnapshot.fromJson(
+      _decode(response)['queue'] as Map<String, Object?>,
+    );
+  }
+
+  Future<QueueSnapshot> saveQueue({
+    required String deviceId,
+    required List<String> items,
+    required int? currentIndex,
+    required double positionSeconds,
+    required String accessCode,
+    required String accessToken,
+  }) async {
+    final response = await _httpClient.put(
+      _resolve('/queue/$deviceId'),
+      headers: _headers(accessCode, accessToken: accessToken),
+      body: jsonEncode({
+        'items': items,
+        'currentIndex': currentIndex,
+        'positionSeconds': positionSeconds,
+      }),
+    );
+    return QueueSnapshot.fromJson(
+      _decode(response)['queue'] as Map<String, Object?>,
+    );
+  }
+
+  Future<QueueTransferResult> transferQueue({
+    required String sourceDeviceId,
+    required String targetDeviceId,
+    required String accessCode,
+    required String accessToken,
+  }) async {
+    final response = await _httpClient.post(
+      _resolve('/queue/transfer'),
+      headers: _headers(accessCode, accessToken: accessToken),
+      body: jsonEncode({
+        'sourceDeviceId': sourceDeviceId,
+        'targetDeviceId': targetDeviceId,
+      }),
+    );
+    return QueueTransferResult.fromJson(_decode(response));
+  }
+
+  Future<BrainGraph> getBrainGraph({
+    required String accessCode,
+    required String accessToken,
+  }) async {
+    final response = await _httpClient.get(
+      _resolve('/brain/graph'),
+      headers: _headers(accessCode, accessToken: accessToken),
+    );
+    return BrainGraph.fromJson(_decode(response));
+  }
+
   Uri streamUri(String trackId) => _resolve('/tracks/$trackId/stream');
+
+  Iterable<Map<String, Object?>> _items(Map<String, Object?> payload) =>
+      (payload['items'] as List? ?? const []).whereType<Map<String, Object?>>();
+
+  Future<void> _delete(
+    String path,
+    String accessCode,
+    String accessToken,
+  ) async {
+    final response = await _httpClient.delete(
+      _resolve(path),
+      headers: _headers(accessCode, accessToken: accessToken),
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      _decode(response);
+    }
+  }
 
   Uri _resolve(String path) => baseUrl.resolve(path);
 

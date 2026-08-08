@@ -38,6 +38,13 @@ final class AudioPlayerController extends ChangeNotifier {
   bool get buffering => _player.state.buffering;
   Duration get position => _player.state.position;
   Duration get duration => _player.state.duration;
+  List<String> get queueTrackIds =>
+      _queue.map((track) => track.id).toList(growable: false);
+  int? get currentIndex {
+    final index = _player.state.playlist.index;
+    return index >= 0 && index < _queue.length ? index : null;
+  }
+
   bool get hasPrevious => _player.state.playlist.index > 0;
   bool get hasNext {
     final index = _player.state.playlist.index;

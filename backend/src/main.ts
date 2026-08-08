@@ -17,6 +17,8 @@ import { FilesystemAudioDiscovery } from './infrastructure/scanner/filesystem-au
 import { MusicMetadataReader } from './infrastructure/scanner/music-metadata-reader.js';
 import { FilesystemObsidianVaultExporter } from './infrastructure/obsidian/filesystem-vault-exporter.js';
 import { PostgresObsidianCatalogSource } from './infrastructure/obsidian/postgres-obsidian-catalog-source.js';
+import { PostgresBrainGraph } from './infrastructure/obsidian/postgres-brain-graph.js';
+import { PostgresDevices, PostgresListening, PostgresPlaylists, PostgresQueues } from './infrastructure/user-data/postgres-user-data.js';
 import { PostgresMusicScanRepository } from './infrastructure/scanner/postgres-music-scan-repository.js';
 import { SupportedAudioMimeTypes } from './infrastructure/streaming/audio-mime-types.js';
 import { NodeTrackFileSystem } from './infrastructure/streaming/node-track-file-system.js';
@@ -51,6 +53,11 @@ async function start(): Promise<void> {
   const favorites = new TrackFavoritesService(
     new PostgresTrackFavoritesRepository(database.client),
   );
+  const listening = new PostgresListening(database.client);
+  const playlists = new PostgresPlaylists(database.client);
+  const devices = new PostgresDevices(database.client);
+  const queues = new PostgresQueues(database.client);
+  const graph = new PostgresBrainGraph(database.client);
   const obsidianSync = new SyncObsidianCatalogService(
     new PostgresObsidianCatalogSource(database.client),
     new FilesystemObsidianVaultExporter(config.OBSIDIAN_PATH),
@@ -71,8 +78,13 @@ async function start(): Promise<void> {
     catalog,
     config,
     databaseHealth: database,
+    devices,
     favorites,
+    graph,
+    listening,
     obsidianSync,
+    playlists,
+    queues,
     scanner,
     streaming,
     tokenService,

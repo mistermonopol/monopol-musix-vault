@@ -1,4 +1,4 @@
-import type { AuthSession, BrainSyncResult, ScanResult, Track, TrackPage } from './types';
+import type { AuthSession, BrainGraph, BrainSyncResult, Device, ListeningEventType, ListeningPosition, Playlist, QueueSnapshot, RecentListeningItem, ScanResult, Track, TrackPage } from './types';
 
 const REFRESH_KEY = 'mmv.refresh-token';
 const ACCESS_CODE_KEY = 'mmv.access-code';
@@ -194,6 +194,44 @@ export function scanLibrary(): Promise<ScanResult> {
 export function syncObsidianBrain(): Promise<BrainSyncResult> {
   return request<BrainSyncResult>('/brain/sync', { method: 'POST' });
 }
+
+export async function listRecentListening(limit = 25): Promise<readonly RecentListeningItem[]> {
+  const payload = await request<{ readonly items: readonly RecentListeningItem[] }>(`/listening/recent?limit=${limit}`);
+  return payload.items;
+}
+
+export function addListeningEvent(trackId: string, eventType: ListeningEventType, positionSeconds?: number): Promise<unknown> {
+  return request('/listening/events', { method: 'POST', body: JSON.stringify({ eventType, positionSeconds, trackId }) });
+}
+
+export async function getListeningPosition(trackId: string): Promise<ListeningPosition | null> {
+  try {
+    const payload = await request<{ readonly position: ListeningPosition }>(`/listening/positions/${encodeURIComponent(trackId)}`);
+    return payload.position;
+  } catch (error: unknown) {
+    if (error instanceof ApiError && error.status === 404) return null;
+    throw error;
+  }
+}
+
+export async function saveListeningPosition(trackId: string, positionSeconds: number): Promise<ListeningPosition> {
+  const payload = await request<{ readonly position: ListeningPosition }>(`/listening/positions/${encodeURIComponent(trackId)}`, { method: 'PUT', body: JSON.stringify({ positionSeconds }) });
+  return payload.position;
+}
+
+export async function listPlaylists(): Promise<readonly Playlist[]> { return (await request<{ readonly items: readonly Playlist[] }>('/playlists')).items; }
+export async function createPlaylist(name: string, description = ''): Promise<Playlist> { return (await request<{ readonly playlist: Playlist }>('/playlists', { method: 'POST', body: JSON.stringify({ description, name }) })).playlist; }
+export async function updatePlaylist(id: string, name: string, description = ''): Promise<Playlist> { return (await request<{ readonly playlist: Playlist }>(`/playlists/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ description, name }) })).playlist; }
+export async function replacePlaylistItems(id: string, trackIds: readonly string[]): Promise<Playlist> { return (await request<{ readonly playlist: Playlist }>(`/playlists/${encodeURIComponent(id)}/items`, { method: 'PUT', body: JSON.stringify({ trackIds }) })).playlist; }
+export function deletePlaylist(id: string): Promise<void> { return request(`/playlists/${encodeURIComponent(id)}`, { method: 'DELETE' }); }
+
+export async function listDevices(): Promise<readonly Device[]> { return (await request<{ readonly items: readonly Device[] }>('/devices')).items; }
+export async function registerDevice(name: string, kind: string): Promise<Device> { return (await request<{ readonly device: Device }>('/devices', { method: 'POST', body: JSON.stringify({ kind, name }) })).device; }
+export function revokeDevice(id: string): Promise<void> { return request(`/devices/${encodeURIComponent(id)}`, { method: 'DELETE' }); }
+export async function getQueue(deviceId: string): Promise<QueueSnapshot | null> { try { return (await request<{ readonly queue: QueueSnapshot }>(`/queue/${encodeURIComponent(deviceId)}`)).queue; } catch (error: unknown) { if (error instanceof ApiError && error.status === 404) return null; throw error; } }
+export async function saveQueue(deviceId: string, queue: Pick<QueueSnapshot, 'currentIndex' | 'items' | 'positionSeconds'>): Promise<QueueSnapshot> { return (await request<{ readonly queue: QueueSnapshot }>(`/queue/${encodeURIComponent(deviceId)}`, { method: 'PUT', body: JSON.stringify(queue) })).queue; }
+export async function transferQueue(sourceDeviceId: string, targetDeviceId: string): Promise<{ readonly autoPlay: false; readonly queue: QueueSnapshot }> { return request('/queue/transfer', { method: 'POST', body: JSON.stringify({ sourceDeviceId, targetDeviceId }) }); }
+export function getBrainGraph(): Promise<BrainGraph> { return request<BrainGraph>('/brain/graph'); }
 
 export function hasSavedSession(): boolean {
   return localStorage.getItem(REFRESH_KEY) !== null

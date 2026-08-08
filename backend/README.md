@@ -26,7 +26,9 @@ Access tokens are short-lived HS256 JWTs intended for the `Authorization: Bearer
 
 ## Obsidian catalog sync
 
-`POST /brain/sync` exports the available PostgreSQL catalog into the writable vault mount configured by `OBSIDIAN_PATH`. It creates relationship-linked notes under `Tracks`, `Artists`, `Albums`, and `Genres`, preserves text inside the generated user-editable delimiters, rejects symlink escapes, and replaces managed content atomically. The endpoint requires both `X-Access-Code` and a valid bearer token.
+`POST /brain/sync` exports the available PostgreSQL catalog into the writable vault mount configured by `OBSIDIAN_PATH`. It creates relationship-linked notes under `Tracks`, `Artists`, `Albums`, and `Genres`, preserves text inside the generated user-editable delimiters, rejects symlink escapes, and replaces managed content atomically. The endpoint requires both `X-Access-Code` and an administrator bearer token.
+
+`GET /brain/graph` generates a normalized graph directly from the available PostgreSQL catalog. It does not read or serve Markdown/HTML, expose an iframe, or execute vault content. Node IDs are namespaced (`track:<uuid>`, `artist:<uuid>`, `album:<uuid>`, `genre:<uuid>`), and edges contain `id`, `source`, `target`, and a relationship `type`.
 
 The exporter does not run Git commands or push credentials. Synchronizing the persistent server vault to GitHub remains an external operational responsibility.
 
@@ -43,11 +45,24 @@ The exporter does not run Git commands or push credentials. Synchronizing the pe
 - `PUT /favorites/tracks/:trackId` idempotently favorites an available track and returns the favorite; missing tracks return `404`.
 - `DELETE /favorites/tracks/:trackId` idempotently removes a favorite and returns `204`.
 - `POST /library/scan` performs an authenticated incremental scan of the configured library.
-- `POST /brain/sync` writes catalog notes and relationships into the Obsidian vault.
+- `POST /brain/sync` writes catalog notes and relationships into the Obsidian vault (admin only).
+- `GET /brain/graph` returns `{ nodes: BrainNode[], edges: BrainEdge[] }` from PostgreSQL.
+- `GET /listening/recent?limit=25` returns `{ items }`; `limit` is 1–100.
+- `POST /listening/events` accepts `{ trackId, eventType, positionSeconds?, occurredAt? }` and returns `201 { event: { id } }`. Event types are `started`, `progress`, `paused`, and `completed`.
+- `GET /listening/positions/:trackId` returns `{ position: { trackId, positionSeconds, updatedAt } }`.
+- `PUT /listening/positions/:trackId` idempotently upserts `{ positionSeconds }` and returns `{ position }`; unchanged values preserve `updatedAt` for throttling-friendly writes.
+- `GET /playlists` returns `{ items: Playlist[] }`; `POST /playlists` accepts `{ name, description? }` and returns `201 { playlist }`.
+- `GET /playlists/:id` returns `{ playlist }`; `PATCH /playlists/:id` replaces metadata with `{ name, description? }`; `DELETE /playlists/:id` returns `204`.
+- `PUT /playlists/:id/items` replaces the ordered contents with `{ trackIds: string[] }` and returns `{ playlist }`. Item order matches array order.
+- `GET /devices` returns `{ items: Device[] }`; `POST /devices` accepts `{ name, kind? }` and returns `201 { device }`; `DELETE /devices/:id` revokes the device and linked refresh sessions, returning `204`.
+- `GET /queue/:deviceId` returns `{ queue }`; `PUT /queue/:deviceId` saves `{ items, currentIndex?, positionSeconds? }`. `items` is an array of at most 500 available track UUIDs.
+- `POST /queue/transfer` accepts `{ sourceDeviceId, targetDeviceId }`, explicitly copies the owned snapshot, and returns `{ queue, autoPlay: false }`. It never starts playback.
 - `GET /tracks/:trackId/stream` streams an available track and supports one RFC 9110 byte range.
 - `HEAD /tracks/:trackId/stream` returns stream metadata without opening the audio file.
 
-Favorite endpoints require both `X-Access-Code` and `Authorization: Bearer <access-token>`. Track IDs must be UUIDs. Favorites are scoped to the authenticated user and are removed automatically when either the user or track is deleted.
+Favorites, listening, playlist, device, queue, and graph endpoints require both `X-Access-Code` and `Authorization: Bearer <access-token>`. IDs must be UUIDs where documented. User resources are scoped by the JWT user ID; cross-user resources are returned as `404` rather than disclosed. Favorites are removed automatically when either the user or track is deleted.
+
+Playlist responses have `{ id, name, description, createdAt, updatedAt, items }`; each item has `{ id, trackId, position }`. Device responses have `{ id, name, kind, createdAt, lastSeenAt }`. Queue responses have `{ deviceId, items, currentIndex, positionSeconds, updatedAt }`. Queue transfer is state transfer only: clients remain responsible for an explicit playback command.
 
 ## Audio streaming
 

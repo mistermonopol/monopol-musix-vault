@@ -32,7 +32,7 @@ const config: AppConfig = {
 
 const authDependencies: Pick<
   BuildAppOptions,
-  'authRepository' | 'authService' | 'catalog' | 'favorites' | 'obsidianSync' | 'scanner' | 'streaming' | 'tokenService'
+  'authRepository' | 'authService' | 'catalog' | 'devices' | 'favorites' | 'graph' | 'listening' | 'obsidianSync' | 'playlists' | 'queues' | 'scanner' | 'streaming' | 'tokenService'
 > = {
   authRepository: {
     bootstrapAdmin: async () => null,
@@ -57,6 +57,9 @@ const authDependencies: Pick<
   catalog: {
     execute: async () => ({ items: [], page: 1, pageSize: 50, total: 0 }),
   },
+  devices: {
+    list: async () => [], register: async (_userId, name, kind) => ({ createdAt: new Date(0), id: '00000000-0000-4000-8000-000000000010', kind, lastSeenAt: new Date(0), name }), revoke: async () => true,
+  },
   favorites: {
     list: async () => [],
     remove: async () => undefined,
@@ -64,11 +67,21 @@ const authDependencies: Pick<
       throw new Error('Not used');
     },
   },
+  graph: { get: async () => ({ edges: [], nodes: [{ id: 'track:1', label: 'Track', type: 'track' }] }) },
+  listening: {
+    addEvent: async () => ({ id: '00000000-0000-4000-8000-000000000020' }), getPosition: async () => null, listRecent: async () => [], upsertPosition: async (_userId, trackId, positionSeconds) => ({ positionSeconds, trackId, updatedAt: new Date(0) }),
+  },
   obsidianSync: {
     execute: async () => ({
       counts: { albums: 0, artists: 0, genres: 0, tracks: 0 },
       errors: [],
     }),
+  },
+  playlists: {
+    create: async (_userId, name, description) => ({ createdAt: new Date(0), description, id: '00000000-0000-4000-8000-000000000030', items: [], name, updatedAt: new Date(0) }), delete: async () => true, get: async () => null, list: async () => [], replaceItems: async () => null, update: async () => null,
+  },
+  queues: {
+    get: async () => null, save: async (_userId, value) => ({ ...value, updatedAt: new Date(0) }), transfer: async (_userId, _source, target) => ({ currentIndex: null, deviceId: target, items: [], positionSeconds: 0, updatedAt: new Date(0) }),
   },
   scanner: {
     scan: async () => ({
@@ -249,6 +262,38 @@ describe('HTTP application', () => {
 
     expect(response.statusCode).toBe(400);
     expect(response.json()).toMatchObject({ code: 'INVALID_REQUEST' });
+  });
+
+  it('returns a normalized authenticated brain graph', async () => {
+    const app = await buildApp({ ...authDependencies, config, databaseHealth: databaseHealth(true) });
+    apps.push(app);
+    const response = await app.inject({ headers: { authorization: 'Bearer valid', 'x-access-code': accessCode }, method: 'GET', url: '/brain/graph' });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ edges: [], nodes: [{ id: 'track:1', label: 'Track', type: 'track' }] });
+  });
+
+  it('transfers a queue without instructing playback to start', async () => {
+    const app = await buildApp({ ...authDependencies, config, databaseHealth: databaseHealth(true) });
+    apps.push(app);
+    const response = await app.inject({ body: { sourceDeviceId: '00000000-0000-4000-8000-000000000001', targetDeviceId: '00000000-0000-4000-8000-000000000002' }, headers: { authorization: 'Bearer valid', 'x-access-code': accessCode }, method: 'POST', url: '/queue/transfer' });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ autoPlay: false, queue: { deviceId: '00000000-0000-4000-8000-000000000002' } });
+  });
+
+  it('bounds queue snapshots to 500 items', async () => {
+    const app = await buildApp({ ...authDependencies, config, databaseHealth: databaseHealth(true) });
+    apps.push(app);
+    const response = await app.inject({ body: { items: Array.from({ length: 501 }, () => '00000000-0000-4000-8000-000000000001') }, headers: { authorization: 'Bearer valid', 'x-access-code': accessCode }, method: 'PUT', url: '/queue/00000000-0000-4000-8000-000000000002' });
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'INVALID_REQUEST' });
+  });
+
+  it('requires an admin role for brain sync', async () => {
+    const app = await buildApp({ ...authDependencies, config, databaseHealth: databaseHealth(true), tokenService: { ...authDependencies.tokenService, verifyAccessToken: async () => ({ role: 'user', userId: 'test' }) } });
+    apps.push(app);
+    const response = await app.inject({ headers: { authorization: 'Bearer valid', 'x-access-code': accessCode }, method: 'POST', url: '/brain/sync' });
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toMatchObject({ code: 'ADMIN_REQUIRED' });
   });
 
   it('accepts the correct access code', async () => {

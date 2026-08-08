@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:monopol_musix_vault/src/core/api/api_client.dart';
+import 'package:monopol_musix_vault/src/features/user_data/domain/user_data_models.dart';
 
 void main() {
   test('login sends access code and parses the session', () async {
@@ -145,6 +146,130 @@ void main() {
 
     expect(uri.toString(), 'https://api.example.test/tracks/track-id/stream');
     expect(uri.hasQuery, isFalse);
+  });
+
+  test('reports listening progress with both authentication layers', () async {
+    final client = ApiClient(
+      baseUrl: Uri.parse('https://api.example.test'),
+      httpClient: MockClient((request) async {
+        expect(request.url.path, '/listening/events');
+        expect(request.headers['X-Access-Code'], 'code');
+        expect(request.headers['Authorization'], 'Bearer token');
+        expect(jsonDecode(request.body), {
+          'trackId': 'track-id',
+          'eventType': 'progress',
+          'positionSeconds': 12.5,
+        });
+        return http.Response(
+          jsonEncode({
+            'event': {'id': 'event-id'},
+          }),
+          201,
+        );
+      }),
+    );
+
+    await client.reportListeningEvent(
+      trackId: 'track-id',
+      eventType: ListeningEventType.progress,
+      positionSeconds: 12.5,
+      accessCode: 'code',
+      accessToken: 'token',
+    );
+  });
+
+  test('parses playlists and normalized brain graph', () async {
+    var requestIndex = 0;
+    final client = ApiClient(
+      baseUrl: Uri.parse('https://api.example.test'),
+      httpClient: MockClient((request) async {
+        requestIndex++;
+        if (requestIndex == 1) {
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {
+                  'id': 'playlist-id',
+                  'name': 'Mix',
+                  'description': '',
+                  'items': [
+                    {'id': 'item-id', 'trackId': 'track-id', 'position': 0},
+                  ],
+                  'createdAt': '2026-01-01T00:00:00Z',
+                  'updatedAt': '2026-01-01T00:00:00Z',
+                },
+              ],
+            }),
+            200,
+          );
+        }
+        return http.Response(
+          jsonEncode({
+            'nodes': [
+              {'id': 'track:1', 'label': 'Track', 'type': 'track'},
+            ],
+            'edges': [
+              {
+                'id': 'edge:1',
+                'source': 'artist:1',
+                'target': 'track:1',
+                'type': 'performed',
+              },
+            ],
+          }),
+          200,
+        );
+      }),
+    );
+
+    final playlists = await client.listPlaylists(
+      accessCode: 'code',
+      accessToken: 'token',
+    );
+    final graph = await client.getBrainGraph(
+      accessCode: 'code',
+      accessToken: 'token',
+    );
+
+    expect(playlists.single.items.single.trackId, 'track-id');
+    expect(graph.nodes.single.label, 'Track');
+    expect(graph.edges.single.target, 'track:1');
+  });
+
+  test('queue transfer remains opt-in and never requests autoplay', () async {
+    final client = ApiClient(
+      baseUrl: Uri.parse('https://api.example.test'),
+      httpClient: MockClient((request) async {
+        expect(request.url.path, '/queue/transfer');
+        expect(jsonDecode(request.body), {
+          'sourceDeviceId': 'source',
+          'targetDeviceId': 'target',
+        });
+        return http.Response(
+          jsonEncode({
+            'autoPlay': false,
+            'queue': {
+              'deviceId': 'target',
+              'items': ['track-id'],
+              'currentIndex': 0,
+              'positionSeconds': 4,
+              'updatedAt': '2026-01-01T00:00:00Z',
+            },
+          }),
+          200,
+        );
+      }),
+    );
+
+    final result = await client.transferQueue(
+      sourceDeviceId: 'source',
+      targetDeviceId: 'target',
+      accessCode: 'code',
+      accessToken: 'token',
+    );
+
+    expect(result.autoPlay, isFalse);
+    expect(result.queue.deviceId, 'target');
   });
 
   test('API errors expose status and server code', () async {

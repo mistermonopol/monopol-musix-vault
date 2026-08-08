@@ -5,7 +5,7 @@ import {
   ObsidianSyncInProgressError,
   type ObsidianSyncOperations,
 } from '../../application/obsidian/sync-catalog.js';
-import { authenticate } from './auth-routes.js';
+import { authenticateClaims } from './auth-routes.js';
 
 interface ObsidianRoutesDependencies {
   readonly obsidianSync: ObsidianSyncOperations;
@@ -17,7 +17,10 @@ export async function registerObsidianRoutes(
   dependencies: ObsidianRoutesDependencies,
 ): Promise<void> {
   app.post('/brain/sync', async (request, reply) => {
-    await authenticate(request, dependencies.tokenService);
+    const claims = await authenticateClaims(request, dependencies.tokenService);
+    if (claims.role !== 'admin') {
+      return reply.status(403).send({ code: 'ADMIN_REQUIRED', error: 'Administrator access required', statusCode: 403 });
+    }
     try {
       return reply.send(await dependencies.obsidianSync.execute());
     } catch (error: unknown) {

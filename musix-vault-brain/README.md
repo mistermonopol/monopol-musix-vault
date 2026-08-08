@@ -22,7 +22,9 @@ Use links such as `[[Artist Name]]`, `[[Album Name]]`, and `[[Genre Name]]` to b
 
 Create track notes from `Templates/Track.md`. Keep metadata factual and structured in properties; use the note body for editorial context, relationships, memories, and listening observations.
 
-The future synchronization service will treat database scanner metadata as authoritative for technical file properties and Obsidian as authoritative for editorial properties. Conflicts will be reported rather than silently overwritten.
+The synchronization service treats database scanner metadata as authoritative for technical file properties and preserves explicitly delimited editorial note regions. `POST /brain/sync` exports the catalog into the persistent VPS vault, while authenticated Web and Flutter clients retrieve a normalized graph through `GET /brain/graph`; neither client embeds Obsidian or reads Markdown directly.
+
+In production this versioned vault is seeded once into `/srv/monopol-musix-vault/brain`, which is mounted writable at `/brain` in the API container. Coolify's temporary source checkout must never be used as the writable vault because redeployment would discard generated and editorial changes. Automatic Git synchronization of the VPS vault remains an external least-privilege operation.
 
 ## Development handoff
 

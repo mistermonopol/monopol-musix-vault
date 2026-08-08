@@ -11,6 +11,8 @@ import type { AuthRepository, TokenService } from './application/auth-ports.js';
 import type { AuthOperations } from './application/auth-service.js';
 import type { CatalogQueryOperations } from './application/catalog-query.js';
 import type { DatabaseHealth } from './application/database-health.js';
+import type { BrainGraphOperations } from './application/brain-graph.js';
+import type { DeviceOperations, ListeningOperations, PlaylistOperations, QueueOperations } from './application/user-data.js';
 import { GetHealth } from './application/get-health.js';
 import type { MusicScannerOperations } from './application/music-scanner.js';
 import type { ObsidianSyncOperations } from './application/obsidian/sync-catalog.js';
@@ -20,6 +22,8 @@ import { createAccessCodeGate } from './infrastructure/access-code.js';
 import type { AppConfig } from './infrastructure/config.js';
 import { SystemClock } from './infrastructure/system-clock.js';
 import { registerAuthRoutes } from './interfaces/http/auth-routes.js';
+import { registerBrainGraphRoutes } from './interfaces/http/brain-graph-routes.js';
+import { registerUserDataRoutes } from './interfaces/http/user-data-routes.js';
 import { registerCatalogRoutes } from './interfaces/http/catalog-routes.js';
 import { registerFavoritesRoutes } from './interfaces/http/favorites-routes.js';
 import { registerHealthRoutes } from './interfaces/http/health-routes.js';
@@ -33,9 +37,14 @@ export interface BuildAppOptions {
   readonly catalog: CatalogQueryOperations;
   readonly config: AppConfig;
   readonly databaseHealth: DatabaseHealth;
+  readonly devices?: DeviceOperations;
   readonly favorites: TrackFavoritesOperations;
+  readonly graph?: BrainGraphOperations;
+  readonly listening?: ListeningOperations;
   readonly logger?: FastifyServerOptions['logger'];
   readonly obsidianSync: ObsidianSyncOperations;
+  readonly playlists?: PlaylistOperations;
+  readonly queues?: QueueOperations;
   readonly scanner: MusicScannerOperations;
   readonly streaming: TrackStreamingOperations;
   readonly tokenService: TokenService;
@@ -125,6 +134,18 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     obsidianSync: options.obsidianSync,
     tokenService: options.tokenService,
   });
+  if (options.graph !== undefined) {
+    await app.register(registerBrainGraphRoutes, { graph: options.graph, tokenService: options.tokenService });
+  }
+  if (options.devices !== undefined && options.listening !== undefined && options.playlists !== undefined && options.queues !== undefined) {
+    await app.register(registerUserDataRoutes, {
+      devices: options.devices,
+      listening: options.listening,
+      playlists: options.playlists,
+      queues: options.queues,
+      tokenService: options.tokenService,
+    });
+  }
   await app.register(registerStreamingRoutes, {
     streaming: options.streaming,
     tokenService: options.tokenService,

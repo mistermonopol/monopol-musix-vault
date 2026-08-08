@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../domain/catalog_track.dart';
 import '../../player/presentation/audio_player_controller.dart';
-import '../../player/presentation/mini_player.dart';
 
 final class LibraryScreen extends StatefulWidget {
   const LibraryScreen({
@@ -45,63 +44,45 @@ final class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
-      title: const Text('Musix Vault'),
-      actions: [
-        IconButton(
-          tooltip: 'Aktualisieren',
-          onPressed: _loading ? null : _load,
-          icon: const Icon(Icons.refresh),
+  Widget build(BuildContext context) => SafeArea(
+    child: Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: SearchBar(
+            controller: _searchController,
+            hintText: 'Titel, Künstler oder Album suchen',
+            leading: const Icon(Icons.search),
+            trailing: [
+              if (_searchController.text.isNotEmpty)
+                IconButton(
+                  tooltip: 'Suche löschen',
+                  onPressed: () {
+                    _searchController.clear();
+                    _load();
+                  },
+                  icon: const Icon(Icons.close),
+                ),
+            ],
+            onChanged: (_) {
+              setState(() {});
+              _searchTimer?.cancel();
+              _searchTimer = Timer(const Duration(milliseconds: 350), _load);
+            },
+          ),
         ),
-        IconButton(
-          tooltip: 'Abmelden',
-          onPressed: _signOut,
-          icon: const Icon(Icons.logout),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '$_total Titel',
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+          ),
         ),
+        Expanded(child: _content()),
       ],
-    ),
-    bottomNavigationBar: MiniPlayer(controller: widget.audioController),
-    body: SafeArea(
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: SearchBar(
-              controller: _searchController,
-              hintText: 'Titel, Künstler oder Album suchen',
-              leading: const Icon(Icons.search),
-              trailing: [
-                if (_searchController.text.isNotEmpty)
-                  IconButton(
-                    tooltip: 'Suche löschen',
-                    onPressed: () {
-                      _searchController.clear();
-                      _load();
-                    },
-                    icon: const Icon(Icons.close),
-                  ),
-              ],
-              onChanged: (_) {
-                setState(() {});
-                _searchTimer?.cancel();
-                _searchTimer = Timer(const Duration(milliseconds: 350), _load);
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '$_total Titel',
-                style: Theme.of(context).textTheme.labelLarge,
-              ),
-            ),
-          ),
-          Expanded(child: _content()),
-        ],
-      ),
     ),
   );
 
@@ -254,11 +235,6 @@ final class _LibraryScreenState extends State<LibraryScreen> {
         SnackBar(content: Text('Wiedergabe nicht möglich: $error')),
       );
     }
-  }
-
-  Future<void> _signOut() async {
-    await widget.audioController.stop();
-    await widget.authController.signOut();
   }
 
   Future<void> _load() async {
