@@ -8,10 +8,12 @@ export class PostgresDatabase implements DatabaseHealth {
 
   public static async connect(config: DatabaseConfig): Promise<PostgresDatabase> {
     const sql = postgres({
+      connect_timeout: 5,
       database: config.database,
       host: config.host,
       idle_timeout: 20,
       max: config.maxConnections,
+      max_lifetime: 60 * 30,
       password: config.password,
       port: config.port,
       ssl: config.ssl ? 'require' : false,
