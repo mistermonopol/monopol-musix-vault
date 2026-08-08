@@ -10,6 +10,7 @@ import '../features/player/presentation/audio_player_controller.dart';
 import '../features/player/presentation/mini_player.dart';
 import '../features/playlists/presentation/playlists_screen.dart';
 import '../features/recent/presentation/recent_screen.dart';
+import '../features/settings/presentation/settings_screen.dart';
 import '../features/user_data/domain/user_data_models.dart';
 
 final class HomeShell extends StatefulWidget {
@@ -99,6 +100,11 @@ final class _HomeShellState extends State<HomeShell> {
             title: Text(_destinations[_selectedIndex].label),
             actions: [
               IconButton(
+                tooltip: 'Einstellungen',
+                onPressed: _openSettings,
+                icon: const Icon(Icons.settings_outlined),
+              ),
+              IconButton(
                 tooltip: 'Abmelden',
                 onPressed: _signOut,
                 icon: const Icon(Icons.logout),
@@ -147,6 +153,21 @@ final class _HomeShellState extends State<HomeShell> {
   }
 
   void _select(int index) => setState(() => _selectedIndex = index);
+
+  Future<void> _openSettings() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (settingsContext) => SettingsScreen(
+          authController: widget.authController,
+          onOpenBrain: () {
+            Navigator.of(settingsContext).pop();
+            _select(4);
+          },
+        ),
+      ),
+    );
+  }
+
   Future<void> _signOut() async {
     await _reporter.flush();
     await widget.audioController.stop();

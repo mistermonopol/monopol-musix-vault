@@ -120,7 +120,7 @@ Roadmap 10.2–10.7 and the MVP completion slice are implemented across PostgreS
 
 ## Validation baseline
 
-Before handoff, the backend passed strict TypeScript, production build, and 106 automated tests. The web app passed strict TypeScript, production build, and 27 automated tests. The Flutter client passed `flutter analyze` with no issues, all 13 tests passed, and an Android release APK with the native audio engine built successfully. Production Compose configuration validation also passed. Full container E2E covered PostgreSQL migration, auth rotation, real WAV scanning, PostgreSQL-to-Obsidian export, access-code rejection and acceptance, cookie-authenticated full/ranged streaming, web availability while the API was stopped, sanitized proxy failure responses, API proxy recovery, nginx health, and direct theme-route reloads.
+Before handoff, the backend passed strict TypeScript, production build, and 107 automated tests. The web app passed strict TypeScript, production build, and 32 automated tests. The Flutter client passed `flutter analyze` with no issues, all 14 tests passed, and an Android release APK with the native audio engine built successfully. Production Compose configuration validation also passed. Full container E2E covered PostgreSQL migration, auth rotation, real WAV scanning, PostgreSQL-to-Obsidian export, access-code rejection and acceptance, cookie-authenticated full/ranged streaming, web availability while the API was stopped, sanitized proxy failure responses, API proxy recovery, nginx health, and direct theme-route reloads.
 
 ## Prioritized TODO
 
@@ -186,6 +186,7 @@ Before handoff, the backend passed strict TypeScript, production build, and 106 
 - [x] Device registry and explicit queue snapshot transfer
 - [x] Brain graph views in Web and Flutter through normalized authenticated API JSON
 - [ ] Shuffle and repeat behavior
+- [x] Rudimentary role-aware Settings/Admin areas in Web and Flutter with Brain Sync and safe connection/account details
 - [ ] Final accessibility, responsive, performance, and deployment polish
 
 ## Start-of-session checklist for the next agent

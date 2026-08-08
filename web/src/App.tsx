@@ -3,10 +3,12 @@ import { AuthScreen } from './components/AuthScreen';
 import { DesignMenu } from './components/DesignMenu';
 import { Library } from './components/Library';
 import { Player } from './components/Player';
+import { SettingsView } from './components/SettingsView';
 import { VaultNavigation, VaultViewContent, type VaultView } from './components/VaultViews';
 import { hasSavedSession, logout, refreshSession, subscribeToSession } from './lib/api';
 import { getSavedThemePath, resolveThemePath, saveThemePath, themeForPath, type ThemePath } from './lib/themes';
 import type { AuthSession, Track } from './lib/types';
+import { getUiSettings, saveUiSettings, type UiSettings } from './lib/uiSettings';
 
 
 export default function App() {
@@ -14,10 +16,15 @@ export default function App() {
   const [restoring, setRestoring] = useState(hasSavedSession());
   const [track, setTrack] = useState<Track | null>(null);
   const [view, setView] = useState<VaultView>('library');
+  const [uiSettings, setUiSettings] = useState<UiSettings>(getUiSettings);
   const [path, setPath] = useState<ThemePath>(() =>
     resolveThemePath(window.location.pathname, getSavedThemePath()),
   );
   const theme = themeForPath(path);
+
+  const updateUiSettings = useCallback((settings: UiSettings) => {
+    saveUiSettings(settings); setUiSettings(settings);
+  }, []);
 
   const navigate = useCallback((nextPath: ThemePath) => {
     if (window.location.pathname !== nextPath) window.history.pushState(null, '', nextPath);
@@ -47,5 +54,5 @@ export default function App() {
 
   if (restoring) return <main className="boot" aria-label="Restoring session"><div className="brand-mark"><span>m</span></div><p>Opening your vault…</p></main>;
   if (session === null) return <><AuthScreen onAuthenticated={setSession} /><DesignMenu activePath={path} onNavigate={navigate} /></>;
-  return <div className={`app theme-${theme.id}`}><VaultNavigation active={view} onNavigate={setView} />{view === 'library' ? <Library user={session.user} theme={theme} currentTrack={track} onPlay={setTrack} onLogout={() => void logout().finally(() => { setSession(null); setTrack(null); })} /> : <VaultViewContent view={view} currentTrack={track} onPlay={setTrack} />}<Player track={track} theme={theme.id} /><DesignMenu activePath={path} onNavigate={navigate} /></div>;
+  return <div className={`app theme-${theme.id}${uiSettings.denseLayout ? ' dense-layout' : ''}`}><VaultNavigation active={view} onNavigate={setView} />{view === 'library' ? <Library user={session.user} theme={theme} currentTrack={track} onPlay={setTrack} onLogout={() => void logout().finally(() => { setSession(null); setTrack(null); })} /> : view === 'settings' ? <SettingsView user={session.user} theme={theme} uiSettings={uiSettings} onUiSettingsChange={updateUiSettings} onThemeChange={navigate} onNavigate={setView} /> : <VaultViewContent view={view} user={session.user} currentTrack={track} onPlay={setTrack} />}<Player track={track} theme={theme.id} /><DesignMenu activePath={path} onNavigate={navigate} /></div>;
 }

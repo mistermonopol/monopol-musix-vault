@@ -21,7 +21,11 @@ Native mobile and desktop client for Android, iOS, Windows, macOS, and Linux. Th
 - Generated initial/icon artwork fallback for missing or invalid images
 - User-scoped native Brain graph with track, artist, album, genre, playlist, and favorites nodes
 - Selectable Brain node details including year, release, duration, codec, favorite, and artwork metadata
-- Admin-only Brain Sync action with exported counts, errors, and automatic graph reload
+- Native Settings screen available from the authenticated AppBar, with app version, account role, server endpoint, and session-local display preferences
+- Admin-only Settings section with Brain Sync, detailed exported counts/errors, explicit HTTP error status/code, and direct Brain graph navigation
+- Admin-only Brain Sync action in the graph view with exported counts, errors, and automatic graph reload
+
+Non-admin accounts can inspect their role and settings but never see admin mutation controls. Display preferences are currently safe in-memory settings and reset when the app process restarts.
 
 Background media controls, shuffle, and repeat are the next player milestones.
 

@@ -321,14 +321,19 @@ void main() {
     expect(graph.edges.single.target, 'track:1');
   });
 
-  test('syncs brain as an authenticated admin request', () async {
+  test('syncs brain through proxy with exact authenticated request', () async {
     final client = ApiClient(
-      baseUrl: Uri.parse('https://api.example.test'),
+      baseUrl: Uri.parse('https://vault.example.test/api/'),
       httpClient: MockClient((request) async {
         expect(request.method, 'POST');
-        expect(request.url.path, '/brain/sync');
+        expect(
+          request.url,
+          Uri.parse('https://vault.example.test/api/brain/sync'),
+        );
         expect(request.headers['X-Access-Code'], 'code');
         expect(request.headers['Authorization'], 'Bearer token');
+        expect(request.headers['Content-Type'], 'application/json');
+        expect(request.bodyBytes, isEmpty);
         return http.Response(
           jsonEncode({
             'counts': {'albums': 2, 'artists': 3, 'genres': 4, 'tracks': 5},
@@ -350,8 +355,36 @@ void main() {
       accessToken: 'token',
     );
 
+    expect(result.counts.albums, 2);
+    expect(result.counts.artists, 3);
+    expect(result.counts.genres, 4);
     expect(result.counts.tracks, 5);
+    expect(result.errors.single.message, 'Could not write note');
+    expect(result.errors.single.noteId, 'track-id');
     expect(result.errors.single.noteType, 'track');
+  });
+
+  test('brain sync exposes API status, code, and message', () async {
+    final client = ApiClient(
+      baseUrl: Uri.parse('https://vault.example.test/api'),
+      httpClient: MockClient((request) async {
+        expect(request.url.path, '/api/brain/sync');
+        return http.Response(
+          jsonEncode({'error': 'Admin role required', 'code': 'FORBIDDEN'}),
+          403,
+        );
+      }),
+    );
+
+    await expectLater(
+      client.syncBrain(accessCode: 'code', accessToken: 'token'),
+      throwsA(
+        isA<ApiException>()
+            .having((error) => error.statusCode, 'statusCode', 403)
+            .having((error) => error.code, 'code', 'FORBIDDEN')
+            .having((error) => error.message, 'message', 'Admin role required'),
+      ),
+    );
   });
 
   test('queue transfer remains opt-in and never requests autoplay', () async {

@@ -1,6 +1,6 @@
 # Monopol Musix Vault Web
 
-Standalone React/Vite client for Monopol Musix Vault. It provides first-admin bootstrap and login, a searchable library, favorites, playlists, devices, an interactive Brain graph, scan/sync controls, embedded cover artwork, and a persistent native-audio player with four responsive, selectable interface designs.
+Standalone React/Vite client for Monopol Musix Vault. It provides first-admin bootstrap and login, a searchable library, favorites, playlists, devices, an interactive Brain graph, role-aware settings and administration, embedded cover artwork, and a persistent native-audio player with four responsive, selectable interface designs.
 
 ## Requirements
 
@@ -29,6 +29,12 @@ The authenticated library is available in four screenshot-inspired designs. They
 The persistent **UI Design** menu changes routes with the History API and supports browser back/forward navigation. The selected route is saved in `localStorage`. Opening `/` or an unknown SPA route redirects to the saved design, or `/spotify` when no choice has been saved. No third-party brand assets, logos, or image hotlinks are used. Embedded album artwork is fetched as an authenticated blob when `hasArtwork` is true; deterministic generated artwork remains the fallback.
 
 Production hosting must retain the existing SPA fallback to `index.html` for all four direct routes.
+
+## Settings and administration
+
+Authenticated users can open **Settings** from the gear entry in the vault navigation. The view shows the session email and role, the active theme, and safe same-origin API route information; it never displays access codes, tokens, cookies, or backend secrets. Theme selection is available as a shortcut, and the dense-layout preference is stored locally under `mmv.ui-settings`.
+
+Users whose session role is exactly `admin` also receive Brain maintenance controls and detailed sync counts/errors. Brain Sync uses the existing `POST /api/brain/sync` client operation, and the graph links reload data when the Brain view opens. Mutation controls are hidden from all other roles, including in the Brain view; backend authorization remains authoritative.
 
 ## Commands
 
