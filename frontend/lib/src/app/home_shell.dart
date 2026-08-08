@@ -129,7 +129,10 @@ final class _HomeShellState extends State<HomeShell> {
           bottomNavigationBar: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              MiniPlayer(controller: widget.audioController),
+              MiniPlayer(
+                controller: widget.audioController,
+                authController: widget.authController,
+              ),
               if (!wide)
                 NavigationBar(
                   selectedIndex: _selectedIndex,

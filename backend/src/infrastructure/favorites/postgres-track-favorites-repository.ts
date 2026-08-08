@@ -12,6 +12,7 @@ interface FavoriteRow {
   readonly duration_seconds: number | null;
   readonly favorited_at: Date;
   readonly genres: CatalogGenre[];
+  readonly has_artwork: boolean;
   readonly id: string;
   readonly title: string;
   readonly year: number | null;
@@ -65,6 +66,7 @@ function favoriteSelect(sql: Sql) {
       track.year,
       track.duration_seconds,
       track.codec,
+      artwork.track_id IS NOT NULL AS has_artwork,
       album.id AS album_id,
       album.title AS album_title,
       COALESCE(track_artist_list.artists, '[]'::jsonb) AS artists,
@@ -72,6 +74,7 @@ function favoriteSelect(sql: Sql) {
     FROM user_track_favorites AS favorite
     JOIN tracks AS track ON track.id = favorite.track_id
     LEFT JOIN albums AS album ON album.id = track.album_id
+    LEFT JOIN track_artwork AS artwork ON artwork.track_id = track.id
     LEFT JOIN LATERAL (
       SELECT jsonb_agg(
         jsonb_build_object('id', artist.id, 'name', artist.name)
@@ -102,6 +105,7 @@ function toTrackFavorite(row: FavoriteRow): TrackFavorite {
     codec: row.codec,
     durationSeconds: row.duration_seconds,
     genres: row.genres,
+    hasArtwork: row.has_artwork,
     id: row.id,
     title: row.title,
     year: row.year,

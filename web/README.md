@@ -1,6 +1,6 @@
 # Monopol Musix Vault Web
 
-Standalone React/Vite client for Monopol Musix Vault. It provides first-admin bootstrap and login, a searchable library, scan controls, and a persistent native-audio player with four responsive, selectable interface designs.
+Standalone React/Vite client for Monopol Musix Vault. It provides first-admin bootstrap and login, a searchable library, favorites, playlists, devices, an interactive Brain graph, scan/sync controls, embedded cover artwork, and a persistent native-audio player with four responsive, selectable interface designs.
 
 ## Requirements
 
@@ -26,7 +26,7 @@ The authenticated library is available in four screenshot-inspired designs. They
 - `/applemusic` — charcoal editorial interface with a red accent
 - `/amazonmusic` — black and warm-brown interface with a cyan accent
 
-The persistent **UI Design** menu changes routes with the History API and supports browser back/forward navigation. The selected route is saved in `localStorage`. Opening `/` or an unknown SPA route redirects to the saved design, or `/spotify` when no choice has been saved. No third-party brand assets, logos, or image hotlinks are used; album artwork is generated deterministically from catalog track data.
+The persistent **UI Design** menu changes routes with the History API and supports browser back/forward navigation. The selected route is saved in `localStorage`. Opening `/` or an unknown SPA route redirects to the saved design, or `/spotify` when no choice has been saved. No third-party brand assets, logos, or image hotlinks are used. Embedded album artwork is fetched as an authenticated blob when `hasArtwork` is true; deterministic generated artwork remains the fallback.
 
 Production hosting must retain the existing SPA fallback to `index.html` for all four direct routes.
 
@@ -51,14 +51,17 @@ All client requests use the `/api` browser prefix. Vite and nginx remove that pr
 | `GET` | `/api/library/tracks?search=&limit=&offset=` | List/search tracks |
 | `POST` | `/api/library/scan` | Scan configured library roots |
 | `GET` | `/api/tracks/:id/stream` | Stream audio, including byte ranges |
+| `GET` | `/api/tracks/:id/artwork` | Fetch embedded JPEG, PNG, or WebP cover bytes |
+| `GET` | `/api/brain/graph` | Load the current user's music relationship graph |
+| `POST` | `/api/brain/sync` | Admin-only Brain/Obsidian sync |
 
-Auth responses must be `{ accessToken, refreshToken, user }` and establish the HttpOnly cookie used by the stream route. The catalog endpoint should return `{ items, total }`; array and `{ tracks }` responses are also accepted for compatibility. Each track must have `id` and `title`. Artist strings or `{ name }` objects and album strings or `{ title }` objects are normalized by the client.
+Auth responses must be `{ accessToken, refreshToken, user }` and establish the HttpOnly cookie used by the stream route. The catalog endpoint should return `{ items, total }`; array and `{ tracks }` responses are also accepted for compatibility. Each track must have `id`, `title`, and `hasArtwork`. Artist strings or `{ name }` objects and album strings or `{ title }` objects are normalized by the client. Brain nodes include `id`, `label`, `type`, and scalar `properties`; supported node types are track, artist, album, genre, playlist, and favorites. The Brain view searches labels and metadata, filters by node type, shows typed connections, and exposes sync status/errors.
 
 **Backend gap:** at the time this client was created, the repository backend implements auth, scan, and stream routes but does not expose `GET /library/tracks`. That endpoint must be added server-side for library results to populate. The UI presents an error/retry state while it is unavailable.
 
 ## Authentication and streaming design
 
-The access token exists only in the JavaScript module's memory. The rotating refresh token is persisted in `localStorage` so a session can survive reloads. The required server access code is sent in the `X-Access-Code` header and is saved in `sessionStorage` only after successful login or bootstrap. It is therefore scoped to the current browser tab and disappears when that tab session ends. Normal `/api` calls—including login, bootstrap, refresh, logout, catalog, and scan—include this header. Bearer-authenticated requests still retry once after a successful, deduplicated refresh.
+The access token exists only in the JavaScript module's memory. The rotating refresh token is persisted in `localStorage` so a session can survive reloads. The required server access code is sent in the `X-Access-Code` header and is saved in `sessionStorage` only after successful login or bootstrap. It is therefore scoped to the current browser tab and disappears when that tab session ends. Normal `/api` calls—including login, bootstrap, refresh, logout, catalog, and scan—include this header. Bearer-authenticated requests still retry once after a successful, deduplicated refresh. Artwork uses the same access-code and JWT headers, is converted to a cached object URL, and is revoked after its final mounted consumer releases it; credentials are never placed in image URLs.
 
 Startup restoration requires both the saved refresh token and the tab's access code. If the access code is absent, the app shows login immediately and leaves the refresh token untouched; successful authentication replaces it. Explicit logout clears both values. A rejected refresh clears the invalid session data.
 

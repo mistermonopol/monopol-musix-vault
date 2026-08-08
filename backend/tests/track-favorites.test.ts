@@ -15,6 +15,7 @@ const favorite: TrackFavorite = {
     codec: 'flac',
     durationSeconds: 180,
     genres: [],
+    hasArtwork: false,
     id: '00000000-0000-4000-8000-000000000001',
     title: 'Favorite track',
     year: 2026,

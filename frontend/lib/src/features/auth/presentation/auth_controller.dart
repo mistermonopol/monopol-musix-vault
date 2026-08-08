@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:flutter/foundation.dart';
 
 import '../../../core/api/api_client.dart';
@@ -18,6 +20,12 @@ final class AuthController extends ChangeNotifier {
   AuthSession? session;
   String? errorMessage;
   String? _accessCode;
+  final LinkedHashMap<String, Uint8List?> _artworkCache = LinkedHashMap();
+  final Map<String, Future<Uint8List?>> _artworkRequests = {};
+  int _artworkCacheBytes = 0;
+
+  static const int _maxArtworkEntries = 64;
+  static const int _maxArtworkBytes = 24 * 1024 * 1024;
 
   String get serverLabel => api.baseUrl.toString();
 
@@ -264,12 +272,55 @@ final class AuthController extends ChangeNotifier {
     );
   }
 
+  Future<Uint8List?> trackArtwork(CatalogTrack track) {
+    if (!track.hasArtwork) return Future.value();
+    if (_artworkCache.containsKey(track.id)) {
+      final bytes = _artworkCache.remove(track.id);
+      _artworkCache[track.id] = bytes;
+      return Future.value(bytes);
+    }
+    return _artworkRequests[track.id] ??= _fetchArtwork(track.id);
+  }
+
+  Future<Uint8List?> _fetchArtwork(String trackId) async {
+    try {
+      final c = _activeCredentials();
+      final bytes = await api.getTrackArtwork(
+        trackId: trackId,
+        accessCode: c.accessCode,
+        accessToken: c.accessToken,
+      );
+      _cacheArtwork(trackId, bytes);
+      return bytes;
+    } finally {
+      _artworkRequests.remove(trackId);
+    }
+  }
+
+  void _cacheArtwork(String trackId, Uint8List? bytes) {
+    final previous = _artworkCache.remove(trackId);
+    _artworkCacheBytes -= previous?.lengthInBytes ?? 0;
+    _artworkCache[trackId] = bytes;
+    _artworkCacheBytes += bytes?.lengthInBytes ?? 0;
+    while (_artworkCache.length > _maxArtworkEntries ||
+        _artworkCacheBytes > _maxArtworkBytes) {
+      final oldest = _artworkCache.keys.first;
+      final removed = _artworkCache.remove(oldest);
+      _artworkCacheBytes -= removed?.lengthInBytes ?? 0;
+    }
+  }
+
   Future<BrainGraph> getBrainGraph() {
     final c = _activeCredentials();
     return api.getBrainGraph(
       accessCode: c.accessCode,
       accessToken: c.accessToken,
     );
+  }
+
+  Future<BrainSyncResult> syncBrain() {
+    final c = _activeCredentials();
+    return api.syncBrain(accessCode: c.accessCode, accessToken: c.accessToken);
   }
 
   ({String accessCode, String accessToken}) _activeCredentials() {
@@ -303,6 +354,9 @@ final class AuthController extends ChangeNotifier {
   Future<void> signOut() async {
     session = null;
     _accessCode = null;
+    _artworkCache.clear();
+    _artworkRequests.clear();
+    _artworkCacheBytes = 0;
     errorMessage = null;
     await store.clear();
     status = AuthStatus.signedOut;

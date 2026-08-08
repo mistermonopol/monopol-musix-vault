@@ -64,6 +64,7 @@ void main() {
                 'album': {'id': 'album-id', 'title': 'Album'},
                 'durationSeconds': 185.4,
                 'year': 2026,
+                'hasArtwork': true,
               },
             ],
             'page': 1,
@@ -85,6 +86,7 @@ void main() {
     expect(page.items.single.title, 'Track title');
     expect(page.items.single.artistLabel, 'Artist');
     expect(page.items.single.album, 'Album');
+    expect(page.items.single.hasArtwork, isTrue);
   });
 
   test('lists and updates synchronized favorites', () async {
@@ -179,6 +181,47 @@ void main() {
     expect(uri.hasQuery, isFalse);
   });
 
+  test('fetches artwork bytes with both authentication layers', () async {
+    final client = ApiClient(
+      baseUrl: Uri.parse('https://api.example.test'),
+      httpClient: MockClient((request) async {
+        expect(request.url.path, '/tracks/track-id/artwork');
+        expect(request.url.query, isEmpty);
+        expect(request.headers['X-Access-Code'], 'code');
+        expect(request.headers['Authorization'], 'Bearer token');
+        return http.Response.bytes(
+          [0xff, 0xd8, 0xff, 0xd9],
+          200,
+          headers: {'content-type': 'image/jpeg'},
+        );
+      }),
+    );
+
+    final bytes = await client.getTrackArtwork(
+      trackId: 'track-id',
+      accessCode: 'code',
+      accessToken: 'token',
+    );
+
+    expect(bytes, [0xff, 0xd8, 0xff, 0xd9]);
+  });
+
+  test('returns null when artwork is unavailable', () async {
+    final client = ApiClient(
+      baseUrl: Uri.parse('https://api.example.test'),
+      httpClient: MockClient((_) async => http.Response('', 404)),
+    );
+
+    expect(
+      await client.getTrackArtwork(
+        trackId: 'track-id',
+        accessCode: 'code',
+        accessToken: 'token',
+      ),
+      isNull,
+    );
+  });
+
   test('reports listening progress with both authentication layers', () async {
     final client = ApiClient(
       baseUrl: Uri.parse('https://api.example.test'),
@@ -237,14 +280,23 @@ void main() {
         return http.Response(
           jsonEncode({
             'nodes': [
-              {'id': 'track:1', 'label': 'Track', 'type': 'track'},
+              {
+                'id': 'track:1',
+                'label': 'Track',
+                'type': 'track',
+                'properties': {
+                  'year': 2026,
+                  'releaseDate': '2026',
+                  'favorite': true,
+                },
+              },
             ],
             'edges': [
               {
                 'id': 'edge:1',
                 'source': 'artist:1',
                 'target': 'track:1',
-                'type': 'performed',
+                'type': 'artist',
               },
             ],
           }),
@@ -264,7 +316,42 @@ void main() {
 
     expect(playlists.single.items.single.trackId, 'track-id');
     expect(graph.nodes.single.label, 'Track');
+    expect(graph.nodes.single.properties['year'], 2026);
+    expect(graph.nodes.single.properties['releaseDate'], '2026');
     expect(graph.edges.single.target, 'track:1');
+  });
+
+  test('syncs brain as an authenticated admin request', () async {
+    final client = ApiClient(
+      baseUrl: Uri.parse('https://api.example.test'),
+      httpClient: MockClient((request) async {
+        expect(request.method, 'POST');
+        expect(request.url.path, '/brain/sync');
+        expect(request.headers['X-Access-Code'], 'code');
+        expect(request.headers['Authorization'], 'Bearer token');
+        return http.Response(
+          jsonEncode({
+            'counts': {'albums': 2, 'artists': 3, 'genres': 4, 'tracks': 5},
+            'errors': [
+              {
+                'message': 'Could not write note',
+                'noteId': 'track-id',
+                'noteType': 'track',
+              },
+            ],
+          }),
+          200,
+        );
+      }),
+    );
+
+    final result = await client.syncBrain(
+      accessCode: 'code',
+      accessToken: 'token',
+    );
+
+    expect(result.counts.tracks, 5);
+    expect(result.errors.single.noteType, 'track');
   });
 
   test('queue transfer remains opt-in and never requests autoplay', () async {

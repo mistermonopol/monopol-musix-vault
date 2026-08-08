@@ -116,11 +116,11 @@ The Flutter client implements login and first-admin bootstrap, sends `X-Access-C
 
 PostgreSQL is the system of record for personal state. Track favorites use `user_track_favorites` with per-user uniqueness and cascading user/track references. `GET /favorites/tracks`, `PUT /favorites/tracks/:trackId`, and `DELETE /favorites/tracks/:trackId` require both access code and JWT. Web and Flutter both load this state and perform idempotent optimistic updates, so the same account sees the same favorites after refresh on either client.
 
-Roadmap 10.2–10.7 is now implemented across PostgreSQL, API, Web, and Flutter: recent listening events, resumable positions, playlists with ordered tracks, device registration/revocation, explicit queue snapshots/transfers with `autoPlay: false`, and a normalized Brain graph. Queue transfer remains a deliberate user action and never interrupts another device automatically.
+Roadmap 10.2–10.7 and the MVP completion slice are implemented across PostgreSQL, API, Web, and Flutter: recent listening events, resumable positions, playlists with ordered tracks, device registration/revocation, explicit queue snapshots/transfers with `autoPlay: false`, synchronized enriched Brain graph views, and protected embedded artwork. Queue transfer remains a deliberate user action and never interrupts another device automatically.
 
 ## Validation baseline
 
-Before handoff, the backend passed strict TypeScript, production build, and 97 automated tests. The web app passed strict TypeScript, production build, and 24 automated tests. The Flutter client passed `flutter analyze` with no issues, all 9 tests passed, and an Android release APK with the native audio engine built successfully. Production Compose configuration validation also passed. Full container E2E covered PostgreSQL migration, auth rotation, real WAV scanning, PostgreSQL-to-Obsidian export, access-code rejection and acceptance, cookie-authenticated full/ranged streaming, web availability while the API was stopped, sanitized proxy failure responses, API proxy recovery, nginx health, and direct theme-route reloads.
+Before handoff, the backend passed strict TypeScript, production build, and 106 automated tests. The web app passed strict TypeScript, production build, and 27 automated tests. The Flutter client passed `flutter analyze` with no issues, all 13 tests passed, and an Android release APK with the native audio engine built successfully. Production Compose configuration validation also passed. Full container E2E covered PostgreSQL migration, auth rotation, real WAV scanning, PostgreSQL-to-Obsidian export, access-code rejection and acceptance, cookie-authenticated full/ranged streaming, web availability while the API was stopped, sanitized proxy failure responses, API proxy recovery, nginx health, and direct theme-route reloads.
 
 ## Prioritized TODO
 
@@ -156,7 +156,7 @@ Before handoff, the backend passed strict TypeScript, production build, and 97 a
 
 ### Library and metadata
 
-- [ ] Extract and serve embedded cover artwork with bounded size and MIME validation.
+- [x] Extract, persist, and serve embedded cover artwork with bounded size, signature checks, MIME validation, and protected client fetching.
 - [ ] Add album, artist, and genre detail endpoints.
 - [ ] Add scanner status/history UI and scheduled scans.
 - [ ] Improve moved-file identity detection while handling exact duplicate files intentionally.
@@ -178,7 +178,7 @@ Before handoff, the backend passed strict TypeScript, production build, and 97 a
 - [ ] Add authenticated Flutter request retry, logout API call, and broader controller/widget tests
 - [ ] Add Flutter catalog pagination and further adaptive library refinements; initial query and search are implemented
 - [x] Flutter audio player with authenticated range streaming
-- [ ] Full library UI and artwork
+- [x] MVP library UI and authenticated embedded artwork
 - [ ] Search refinements
 - [x] Synchronized playlists with ordered tracks
 - [x] Synchronized per-user favorites in PostgreSQL, API, Web, and Flutter

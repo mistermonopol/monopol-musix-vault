@@ -3,8 +3,10 @@ import { AuthService } from './application/auth-service.js';
 import { CatalogQueryService } from './application/catalog-query.js';
 import { MusicScanner } from './application/music-scanner.js';
 import { SyncObsidianCatalogService } from './application/obsidian/sync-catalog.js';
+import { TrackArtworkService } from './application/track-artwork.js';
 import { TrackStreamingService } from './application/track-streaming-service.js';
 import { TrackFavoritesService } from './application/track-favorites.js';
+import { PostgresTrackArtworkRepository } from './infrastructure/artwork/postgres-track-artwork-repository.js';
 import { ArgonPasswordHasher } from './infrastructure/auth/argon-password-hasher.js';
 import { JwtTokenService } from './infrastructure/auth/jwt-token-service.js';
 import { PostgresAuthRepository } from './infrastructure/auth/postgres-auth-repository.js';
@@ -47,6 +49,7 @@ async function start(): Promise<void> {
     new ArgonPasswordHasher(),
     tokenService,
   );
+  const artwork = new TrackArtworkService(new PostgresTrackArtworkRepository(database.client));
   const catalog = new CatalogQueryService(
     new PostgresCatalogRepository(database.client),
   );
@@ -75,6 +78,7 @@ async function start(): Promise<void> {
   const app = await buildApp({
     authRepository,
     authService,
+    artwork,
     catalog,
     config,
     databaseHealth: database,

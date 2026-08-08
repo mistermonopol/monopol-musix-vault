@@ -149,11 +149,22 @@ describe('user data API', () => {
 
   it('transfers a queue without requesting autoplay and loads the graph', async () => {
     const queue = { deviceId: 'target', items: ['track'], currentIndex: 0, positionSeconds: 3, updatedAt: '' };
-    const graph = { nodes: [{ id: 'track:1', label: 'One', type: 'track' }], edges: [] };
+    const graph = { nodes: [{ id: 'track:1', label: 'One', type: 'track', properties: { album: 'First', year: 2026 } }], edges: [] };
     const { api, fetchMock } = await authenticatedApi([jsonResponse({ autoPlay: false, queue }), jsonResponse(graph)]);
     await expect(api.transferQueue('source', 'target')).resolves.toMatchObject({ autoPlay: false });
     await expect(api.getBrainGraph()).resolves.toEqual(graph);
     expect(fetchMock.mock.calls[1]?.[1]?.body).toBe(JSON.stringify({ sourceDeviceId: 'source', targetDeviceId: 'target' }));
     expect(new Headers(fetchMock.mock.calls[2]?.[1]?.headers).get('Authorization')).toBe('Bearer access-token');
+  });
+
+  it('loads artwork as an authenticated blob and handles missing artwork', async () => {
+    const image = new Blob(['image'], { type: 'image/jpeg' });
+    const { api, fetchMock } = await authenticatedApi([new Response(image, { headers: { 'Content-Type': 'image/jpeg' } }), jsonResponse({ error: 'missing' }, 404)]);
+    await expect(api.getTrackArtwork('track/id')).resolves.toMatchObject({ type: 'image/jpeg' });
+    await expect(api.getTrackArtwork('missing')).resolves.toBeNull();
+    expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/tracks/track%2Fid/artwork');
+    const headers = new Headers(fetchMock.mock.calls[1]?.[1]?.headers);
+    expect(headers.get('Authorization')).toBe('Bearer access-token');
+    expect(headers.get('X-Access-Code')).toBe('tab-code');
   });
 });

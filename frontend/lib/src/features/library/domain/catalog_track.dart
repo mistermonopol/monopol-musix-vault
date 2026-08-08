@@ -6,6 +6,7 @@ final class CatalogTrack {
     required this.album,
     required this.durationSeconds,
     required this.year,
+    required this.hasArtwork,
   });
 
   factory CatalogTrack.fromJson(Map<String, Object?> json) {
@@ -26,6 +27,7 @@ final class CatalogTrack {
           : null,
       durationSeconds: (json['durationSeconds'] as num?)?.toDouble(),
       year: (json['year'] as num?)?.toInt(),
+      hasArtwork: json['hasArtwork'] as bool? ?? false,
     );
   }
 
@@ -35,6 +37,7 @@ final class CatalogTrack {
   final String? album;
   final double? durationSeconds;
   final int? year;
+  final bool hasArtwork;
 
   String get artistLabel =>
       artists.isEmpty ? 'Unbekannter Künstler' : artists.join(', ');

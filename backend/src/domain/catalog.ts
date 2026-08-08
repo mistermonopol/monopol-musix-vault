@@ -19,6 +19,7 @@ export interface CatalogTrack {
   readonly codec: string | null;
   readonly durationSeconds: number | null;
   readonly genres: readonly CatalogGenre[];
+  readonly hasArtwork: boolean;
   readonly id: string;
   readonly title: string;
   readonly year: number | null;

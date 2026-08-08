@@ -16,11 +16,13 @@ import type { DeviceOperations, ListeningOperations, PlaylistOperations, QueueOp
 import { GetHealth } from './application/get-health.js';
 import type { MusicScannerOperations } from './application/music-scanner.js';
 import type { ObsidianSyncOperations } from './application/obsidian/sync-catalog.js';
+import type { TrackArtworkOperations } from './application/track-artwork.js';
 import type { TrackStreamingOperations } from './application/track-streaming-service.js';
 import { TrackNotFoundError, type TrackFavoritesOperations } from './application/track-favorites.js';
 import { createAccessCodeGate } from './infrastructure/access-code.js';
 import type { AppConfig } from './infrastructure/config.js';
 import { SystemClock } from './infrastructure/system-clock.js';
+import { registerArtworkRoutes } from './interfaces/http/artwork-routes.js';
 import { registerAuthRoutes } from './interfaces/http/auth-routes.js';
 import { registerBrainGraphRoutes } from './interfaces/http/brain-graph-routes.js';
 import { registerUserDataRoutes } from './interfaces/http/user-data-routes.js';
@@ -34,6 +36,7 @@ import { registerStreamingRoutes } from './interfaces/http/streaming-routes.js';
 export interface BuildAppOptions {
   readonly authRepository: AuthRepository;
   readonly authService: AuthOperations;
+  readonly artwork: TrackArtworkOperations;
   readonly catalog: CatalogQueryOperations;
   readonly config: AppConfig;
   readonly databaseHealth: DatabaseHealth;
@@ -116,6 +119,10 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   await app.register(registerAuthRoutes, {
     authRepository: options.authRepository,
     authService: options.authService,
+    tokenService: options.tokenService,
+  });
+  await app.register(registerArtworkRoutes, {
+    artwork: options.artwork,
     tokenService: options.tokenService,
   });
   await app.register(registerCatalogRoutes, {

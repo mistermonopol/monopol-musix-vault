@@ -162,17 +162,39 @@ final class QueueTransferResult {
 }
 
 final class BrainNode {
-  const BrainNode({required this.id, required this.label, required this.type});
+  const BrainNode({
+    required this.id,
+    required this.label,
+    required this.type,
+    required this.properties,
+  });
 
-  factory BrainNode.fromJson(Map<String, Object?> json) => BrainNode(
-    id: json['id'] as String,
-    label: json['label'] as String,
-    type: json['type'] as String,
-  );
+  factory BrainNode.fromJson(Map<String, Object?> json) {
+    final rawProperties = json['properties'];
+    return BrainNode(
+      id: json['id'] as String,
+      label: json['label'] as String,
+      type: json['type'] as String,
+      properties: rawProperties is Map<String, Object?>
+          ? Map.unmodifiable(
+              Map.fromEntries(
+                rawProperties.entries.where(
+                  (entry) =>
+                      entry.value == null ||
+                      entry.value is bool ||
+                      entry.value is num ||
+                      entry.value is String,
+                ),
+              ),
+            )
+          : const {},
+    );
+  }
 
   final String id;
   final String label;
   final String type;
+  final Map<String, Object?> properties;
 }
 
 final class BrainEdge {
@@ -212,4 +234,58 @@ final class BrainGraph {
 
   final List<BrainNode> nodes;
   final List<BrainEdge> edges;
+}
+
+final class BrainSyncCounts {
+  const BrainSyncCounts({
+    required this.albums,
+    required this.artists,
+    required this.genres,
+    required this.tracks,
+  });
+
+  factory BrainSyncCounts.fromJson(Map<String, Object?> json) =>
+      BrainSyncCounts(
+        albums: (json['albums'] as num).toInt(),
+        artists: (json['artists'] as num).toInt(),
+        genres: (json['genres'] as num).toInt(),
+        tracks: (json['tracks'] as num).toInt(),
+      );
+
+  final int albums;
+  final int artists;
+  final int genres;
+  final int tracks;
+}
+
+final class BrainSyncError {
+  const BrainSyncError({required this.message, this.noteId, this.noteType});
+
+  factory BrainSyncError.fromJson(Map<String, Object?> json) => BrainSyncError(
+    message: json['message'] as String,
+    noteId: json['noteId'] as String?,
+    noteType: json['noteType'] as String?,
+  );
+
+  final String message;
+  final String? noteId;
+  final String? noteType;
+}
+
+final class BrainSyncResult {
+  const BrainSyncResult({required this.counts, required this.errors});
+
+  factory BrainSyncResult.fromJson(Map<String, Object?> json) =>
+      BrainSyncResult(
+        counts: BrainSyncCounts.fromJson(
+          json['counts'] as Map<String, Object?>,
+        ),
+        errors: (json['errors'] as List? ?? const [])
+            .whereType<Map<String, Object?>>()
+            .map(BrainSyncError.fromJson)
+            .toList(growable: false),
+      );
+
+  final BrainSyncCounts counts;
+  final List<BrainSyncError> errors;
 }

@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 
+import '../../auth/presentation/auth_controller.dart';
+import '../../library/presentation/track_artwork.dart';
 import 'audio_player_controller.dart';
 
 final class MiniPlayer extends StatelessWidget {
-  const MiniPlayer({required this.controller, super.key});
+  const MiniPlayer({
+    required this.controller,
+    required this.authController,
+    super.key,
+  });
 
   final AudioPlayerController controller;
+  final AuthController authController;
 
   @override
   Widget build(BuildContext context) {
@@ -37,9 +44,10 @@ final class MiniPlayer extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
               child: Row(
                 children: [
-                  const SizedBox.square(
-                    dimension: 46,
-                    child: Card(child: Icon(Icons.music_note)),
+                  TrackArtwork(
+                    track: track,
+                    authController: authController,
+                    size: 46,
                   ),
                   const SizedBox(width: 10),
                   Expanded(

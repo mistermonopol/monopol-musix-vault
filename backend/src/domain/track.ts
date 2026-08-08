@@ -10,10 +10,16 @@ export interface NumberPair {
   readonly total: number | null;
 }
 
+export interface EmbeddedArtwork {
+  readonly data: Buffer;
+  readonly mimeType: 'image/jpeg' | 'image/png' | 'image/webp';
+}
+
 export interface TrackMetadata {
   readonly album: string | null;
   readonly albumArtists: readonly string[];
   readonly artists: readonly string[];
+  readonly artwork: EmbeddedArtwork | null;
   readonly bitrate: number | null;
   readonly codec: string | null;
   readonly container: string | null;

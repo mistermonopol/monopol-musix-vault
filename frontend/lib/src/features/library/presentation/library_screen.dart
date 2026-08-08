@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../auth/presentation/auth_controller.dart';
 import '../domain/catalog_track.dart';
+import 'track_artwork.dart';
 import '../../player/presentation/audio_player_controller.dart';
 
 final class LibraryScreen extends StatefulWidget {
@@ -141,9 +142,9 @@ final class _LibraryScreenState extends State<LibraryScreen> {
         itemBuilder: (context, index) {
           final track = _tracks[index];
           return ListTile(
-            leading: const SizedBox.square(
-              dimension: 48,
-              child: Card(child: Icon(Icons.music_note)),
+            leading: TrackArtwork(
+              track: track,
+              authController: widget.authController,
             ),
             title: Text(
               track.title,

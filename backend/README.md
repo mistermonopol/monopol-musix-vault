@@ -28,7 +28,7 @@ Access tokens are short-lived HS256 JWTs intended for the `Authorization: Bearer
 
 `POST /brain/sync` exports the available PostgreSQL catalog into the writable vault mount configured by `OBSIDIAN_PATH`. It creates relationship-linked notes under `Tracks`, `Artists`, `Albums`, and `Genres`, preserves text inside the generated user-editable delimiters, rejects symlink escapes, and replaces managed content atomically. The endpoint requires both `X-Access-Code` and an administrator bearer token.
 
-`GET /brain/graph` generates a normalized graph directly from the available PostgreSQL catalog. It does not read or serve Markdown/HTML, expose an iframe, or execute vault content. Node IDs are namespaced (`track:<uuid>`, `artist:<uuid>`, `album:<uuid>`, `genre:<uuid>`), and edges contain `id`, `source`, `target`, and a relationship `type`.
+`GET /brain/graph` generates a normalized graph directly from the available PostgreSQL catalog and the authenticated user's personal data. It does not read or serve Markdown/HTML, expose an iframe, execute vault content, or return filesystem paths. Node IDs are namespaced (`track:<uuid>`, `artist:<uuid>`, `album:<uuid>`, `genre:<uuid>`, `playlist:<uuid>`, and the user-local `favorites:mine`). Every node has `{ id, label, type, properties }`. Track properties contain `{ year, releaseDate, durationSeconds, codec, favorite, hasArtwork }`; unavailable values are `null`. Album properties contain `year`, playlist properties contain `description` and `updatedAt`, and other collection properties are empty. Edges have `{ id, source, target, type }`, where `type` is `artist`, `album`, `genre`, `playlist`, or `favorite`. Playlist and favorite nodes, edges, and track `favorite` flags are selected exclusively with the JWT `userId`.
 
 The exporter does not run Git commands or push credentials. Synchronizing the persistent server vault to GitHub remains an external operational responsibility.
 
@@ -46,7 +46,7 @@ The exporter does not run Git commands or push credentials. Synchronizing the pe
 - `DELETE /favorites/tracks/:trackId` idempotently removes a favorite and returns `204`.
 - `POST /library/scan` performs an authenticated incremental scan of the configured library.
 - `POST /brain/sync` writes catalog notes and relationships into the Obsidian vault (admin only).
-- `GET /brain/graph` returns `{ nodes: BrainNode[], edges: BrainEdge[] }` from PostgreSQL.
+- `GET /brain/graph` returns the current user's `{ nodes: BrainNode[], edges: BrainEdge[] }` graph from PostgreSQL.
 - `GET /listening/recent?limit=25` returns `{ items }`; `limit` is 1–100.
 - `POST /listening/events` accepts `{ trackId, eventType, positionSeconds?, occurredAt? }` and returns `201 { event: { id } }`. Event types are `started`, `progress`, `paused`, and `completed`.
 - `GET /listening/positions/:trackId` returns `{ position: { trackId, positionSeconds, updatedAt } }`.
@@ -57,12 +57,17 @@ The exporter does not run Git commands or push credentials. Synchronizing the pe
 - `GET /devices` returns `{ items: Device[] }`; `POST /devices` accepts `{ name, kind? }` and returns `201 { device }`; `DELETE /devices/:id` revokes the device and linked refresh sessions, returning `204`.
 - `GET /queue/:deviceId` returns `{ queue }`; `PUT /queue/:deviceId` saves `{ items, currentIndex?, positionSeconds? }`. `items` is an array of at most 500 available track UUIDs.
 - `POST /queue/transfer` accepts `{ sourceDeviceId, targetDeviceId }`, explicitly copies the owned snapshot, and returns `{ queue, autoPlay: false }`. It never starts playback.
+- `GET /tracks/:trackId/artwork` returns persisted embedded artwork bytes for an available track, or `404` when absent.
 - `GET /tracks/:trackId/stream` streams an available track and supports one RFC 9110 byte range.
 - `HEAD /tracks/:trackId/stream` returns stream metadata without opening the audio file.
 
-Favorites, listening, playlist, device, queue, and graph endpoints require both `X-Access-Code` and `Authorization: Bearer <access-token>`. IDs must be UUIDs where documented. User resources are scoped by the JWT user ID; cross-user resources are returned as `404` rather than disclosed. Favorites are removed automatically when either the user or track is deleted.
+Favorites, listening, playlist, device, queue, graph, and artwork endpoints require both `X-Access-Code` and `Authorization: Bearer <access-token>`. IDs must be UUIDs where documented. User resources are scoped by the JWT user ID; cross-user resources are returned as `404` rather than disclosed. Favorites are removed automatically when either the user or track is deleted.
 
 Playlist responses have `{ id, name, description, createdAt, updatedAt, items }`; each item has `{ id, trackId, position }`. Device responses have `{ id, name, kind, createdAt, lastSeenAt }`. Queue responses have `{ deviceId, items, currentIndex, positionSeconds, updatedAt }`. Queue transfer is state transfer only: clients remain responsible for an explicit playback command.
+
+## Embedded artwork
+
+Scans persist the first safe embedded JPEG, PNG, or WebP picture for each changed track. Declared MIME and file signatures must agree; empty and images larger than 5 MiB are ignored, and the database repeats the MIME and size constraints. Rescanning a changed track removes stale artwork when none is present. `GET /tracks/:trackId/artwork` requires both `X-Access-Code` and `Authorization: Bearer <access-token>` (secrets are never accepted in URLs), returns the raw bytes with `Content-Type`, `Content-Length`, `Cache-Control: private, max-age=86400`, and `X-Content-Type-Options: nosniff`, and returns the path-free `ARTWORK_NOT_FOUND` response for missing or unavailable tracks. Catalog and favorite track objects include `hasArtwork: boolean` so Web and Flutter clients can avoid speculative requests.
 
 ## Audio streaming
 
@@ -70,4 +75,4 @@ Streaming requires a bearer access token and resolves only available catalog tra
 
 ## Music scanning
 
-The host path configured by `MUSIC_PATH` is mounted read-only at `/music`. Scans recursively discover supported audio formats without following symbolic-link directories, extract embedded metadata, and transactionally maintain normalized artists, albums, genres, tracks, and their relationships. Unchanged files avoid metadata parsing; unavailable files are retained and marked missing rather than deleted. Per-file failures are returned in the scan result and do not abort healthy files.
+The host path configured by `MUSIC_PATH` is mounted read-only at `/music`. Scans recursively discover supported audio formats without following symbolic-link directories, extract embedded metadata and bounded artwork, and transactionally maintain normalized artists, albums, genres, tracks, and their relationships. Unchanged files avoid metadata parsing; unavailable files are retained and marked missing rather than deleted. Per-file failures are returned in the scan result and do not abort healthy files.

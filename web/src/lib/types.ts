@@ -17,6 +17,7 @@ export interface Track {
   readonly album: string | null;
   readonly durationSeconds: number | null;
   readonly year: number | null;
+  readonly hasArtwork: boolean;
 }
 
 export interface TrackPage {
@@ -85,7 +86,9 @@ export interface QueueSnapshot {
   readonly updatedAt: string;
 }
 
-export type BrainNodeType = 'track' | 'artist' | 'album' | 'genre';
-export interface BrainGraphNode { readonly id: string; readonly label: string; readonly type: BrainNodeType }
-export interface BrainGraphEdge { readonly id: string; readonly source: string; readonly target: string; readonly type: 'artist' | 'album' | 'genre' }
+export type BrainNodeType = 'track' | 'artist' | 'album' | 'genre' | 'playlist' | 'favorites';
+export type BrainEdgeType = 'artist' | 'album' | 'genre' | 'playlist' | 'favorite';
+export type BrainNodeProperty = boolean | number | string | null;
+export interface BrainGraphNode { readonly id: string; readonly label: string; readonly type: BrainNodeType; readonly properties: Readonly<Record<string, BrainNodeProperty>> }
+export interface BrainGraphEdge { readonly id: string; readonly source: string; readonly target: string; readonly type: BrainEdgeType }
 export interface BrainGraph { readonly nodes: readonly BrainGraphNode[]; readonly edges: readonly BrainGraphEdge[] }

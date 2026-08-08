@@ -32,7 +32,7 @@ const config: AppConfig = {
 
 const authDependencies: Pick<
   BuildAppOptions,
-  'authRepository' | 'authService' | 'catalog' | 'devices' | 'favorites' | 'graph' | 'listening' | 'obsidianSync' | 'playlists' | 'queues' | 'scanner' | 'streaming' | 'tokenService'
+  'authRepository' | 'authService' | 'artwork' | 'catalog' | 'devices' | 'favorites' | 'graph' | 'listening' | 'obsidianSync' | 'playlists' | 'queues' | 'scanner' | 'streaming' | 'tokenService'
 > = {
   authRepository: {
     bootstrapAdmin: async () => null,
@@ -42,6 +42,7 @@ const authDependencies: Pick<
     revokeRefreshSession: async () => undefined,
     rotateRefreshSession: async () => null,
   },
+  artwork: { get: async () => null },
   authService: {
     bootstrap: async () => {
       throw new Error('Not used');
@@ -67,7 +68,7 @@ const authDependencies: Pick<
       throw new Error('Not used');
     },
   },
-  graph: { get: async () => ({ edges: [], nodes: [{ id: 'track:1', label: 'Track', type: 'track' }] }) },
+  graph: { get: async () => ({ edges: [], nodes: [{ id: 'track:1', label: 'Track', properties: {}, type: 'track' }] }) },
   listening: {
     addEvent: async () => ({ id: '00000000-0000-4000-8000-000000000020' }), getPosition: async () => null, listRecent: async () => [], upsertPosition: async (_userId, trackId, positionSeconds) => ({ positionSeconds, trackId, updatedAt: new Date(0) }),
   },
@@ -218,6 +219,7 @@ describe('HTTP application', () => {
               codec: 'flac',
               durationSeconds: 180,
               genres: [],
+              hasArtwork: false,
               id: '00000000-0000-4000-8000-000000000001',
               title: 'Favorite track',
               year: 2026,
@@ -264,12 +266,62 @@ describe('HTTP application', () => {
     expect(response.json()).toMatchObject({ code: 'INVALID_REQUEST' });
   });
 
-  it('returns a normalized authenticated brain graph', async () => {
-    const app = await buildApp({ ...authDependencies, config, databaseHealth: databaseHealth(true) });
+  it('returns a normalized authenticated brain graph scoped to JWT user ID', async () => {
+    const app = await buildApp({
+      ...authDependencies,
+      config,
+      databaseHealth: databaseHealth(true),
+      graph: {
+        get: async (userId) => {
+          expect(userId).toBe('test');
+          return { edges: [], nodes: [{ id: 'track:1', label: 'Track', properties: {}, type: 'track' }] };
+        },
+      },
+    });
     apps.push(app);
     const response = await app.inject({ headers: { authorization: 'Bearer valid', 'x-access-code': accessCode }, method: 'GET', url: '/brain/graph' });
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ edges: [], nodes: [{ id: 'track:1', label: 'Track', type: 'track' }] });
+    expect(response.json()).toEqual({ edges: [], nodes: [{ id: 'track:1', label: 'Track', properties: {}, type: 'track' }] });
+  });
+
+  it('serves protected artwork bytes with validated response headers', async () => {
+    const bytes = Buffer.from([0xff, 0xd8, 0xff, 0xd9]);
+    const app = await buildApp({
+      ...authDependencies,
+      artwork: { get: async () => ({ data: bytes, mimeType: 'image/jpeg' }) },
+      config,
+      databaseHealth: databaseHealth(true),
+    });
+    apps.push(app);
+
+    const denied = await app.inject({ method: 'GET', url: '/tracks/00000000-0000-4000-8000-000000000001/artwork' });
+    expect(denied.statusCode).toBe(403);
+
+    const response = await app.inject({
+      headers: { authorization: 'Bearer valid', 'x-access-code': accessCode },
+      method: 'GET',
+      url: '/tracks/00000000-0000-4000-8000-000000000001/artwork',
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.headers).toMatchObject({
+      'content-length': String(bytes.length),
+      'content-type': 'image/jpeg',
+      'x-content-type-options': 'nosniff',
+    });
+    expect(response.rawPayload).toEqual(bytes);
+  });
+
+  it('returns a path-free 404 when artwork is unavailable', async () => {
+    const app = await buildApp({ ...authDependencies, config, databaseHealth: databaseHealth(true) });
+    apps.push(app);
+    const response = await app.inject({
+      headers: { authorization: 'Bearer valid', 'x-access-code': accessCode },
+      method: 'GET',
+      url: '/tracks/00000000-0000-4000-8000-000000000001/artwork',
+    });
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({ code: 'ARTWORK_NOT_FOUND', error: 'Artwork not found', statusCode: 404 });
+    expect(response.body).not.toContain('/music');
   });
 
   it('transfers a queue without instructing playback to start', async () => {

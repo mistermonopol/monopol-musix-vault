@@ -18,6 +18,7 @@ interface TrackRow {
   readonly codec: string | null;
   readonly duration_seconds: number | null;
   readonly genres: CatalogGenre[];
+  readonly has_artwork: boolean;
   readonly id: string;
   readonly title: string;
   readonly year: number | null;
@@ -68,12 +69,14 @@ export class PostgresCatalogRepository implements CatalogRepository {
         track.year,
         track.duration_seconds,
         track.codec,
+        artwork.track_id IS NOT NULL AS has_artwork,
         album.id AS album_id,
         album.title AS album_title,
         COALESCE(track_artist_list.artists, '[]'::jsonb) AS artists,
         COALESCE(track_genre_list.genres, '[]'::jsonb) AS genres
       FROM tracks AS track
       LEFT JOIN albums AS album ON album.id = track.album_id
+      LEFT JOIN track_artwork AS artwork ON artwork.track_id = track.id
       LEFT JOIN LATERAL (
         SELECT jsonb_agg(
           jsonb_build_object('id', artist.id, 'name', artist.name)
@@ -121,6 +124,7 @@ function toCatalogTrack(row: TrackRow): CatalogTrack {
     codec: row.codec,
     durationSeconds: row.duration_seconds,
     genres: row.genres,
+    hasArtwork: row.has_artwork,
     id: row.id,
     title: row.title,
     year: row.year,

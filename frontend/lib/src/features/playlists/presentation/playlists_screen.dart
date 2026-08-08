@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../auth/presentation/auth_controller.dart';
 import '../../library/domain/catalog_track.dart';
+import '../../library/presentation/track_artwork.dart';
 import '../../player/presentation/audio_player_controller.dart';
 import '../../user_data/domain/user_data_models.dart';
 
@@ -75,7 +76,7 @@ final class _PlaylistsScreenState extends State<PlaylistsScreen> {
                 for (final item in playlist.items)
                   ListTile(
                     dense: true,
-                    leading: Text('${item.position + 1}'),
+                    leading: _playlistArtwork(item),
                     title: Text(_track(item.trackId)?.title ?? item.trackId),
                     subtitle: Text(
                       _track(item.trackId)?.artistLabel ??
@@ -114,6 +115,17 @@ final class _PlaylistsScreenState extends State<PlaylistsScreen> {
         },
       ),
     );
+  }
+
+  Widget _playlistArtwork(VaultPlaylistItem item) {
+    final track = _track(item.trackId);
+    return track == null
+        ? Text('${item.position + 1}')
+        : TrackArtwork(
+            track: track,
+            authController: widget.authController,
+            size: 40,
+          );
   }
 
   CatalogTrack? _track(String id) {
@@ -221,6 +233,11 @@ final class _PlaylistsScreenState extends State<PlaylistsScreen> {
                 final track = _tracks[index];
                 return CheckboxListTile(
                   value: selected.contains(track.id),
+                  secondary: TrackArtwork(
+                    track: track,
+                    authController: widget.authController,
+                    size: 40,
+                  ),
                   title: Text(track.title),
                   subtitle: Text(track.artistLabel),
                   onChanged: (value) => setDialogState(() {

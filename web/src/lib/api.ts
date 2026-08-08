@@ -85,6 +85,7 @@ function normalizeTrack(value: unknown): Track | null {
     album,
     durationSeconds: typeof metadata.durationSeconds === 'number' ? metadata.durationSeconds : null,
     year: typeof metadata.year === 'number' ? metadata.year : null,
+    hasArtwork: item.hasArtwork === true,
   };
 }
 
@@ -193,6 +194,21 @@ export function scanLibrary(): Promise<ScanResult> {
 
 export function syncObsidianBrain(): Promise<BrainSyncResult> {
   return request<BrainSyncResult>('/brain/sync', { method: 'POST' });
+}
+
+export async function getTrackArtwork(trackId: string, retry = true): Promise<Blob | null> {
+  const headers = new Headers();
+  const accessCode = sessionStorage.getItem(ACCESS_CODE_KEY);
+  if (accessCode !== null) headers.set('X-Access-Code', accessCode);
+  if (accessToken !== null) headers.set('Authorization', `Bearer ${accessToken}`);
+  const response = await fetch(`/api/tracks/${encodeURIComponent(trackId)}/artwork`, { headers });
+  if (response.status === 401 && retry && hasSavedSession()) {
+    await refreshSession();
+    return getTrackArtwork(trackId, false);
+  }
+  if (response.status === 404) return null;
+  if (!response.ok) throw await parseError(response);
+  return response.blob();
 }
 
 export async function listRecentListening(limit = 25): Promise<readonly RecentListeningItem[]> {

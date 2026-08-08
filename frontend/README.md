@@ -16,8 +16,14 @@ Native mobile and desktop client for Android, iOS, Windows, macOS, and Linux. Th
 - JWT-authenticated HTTP range streaming without secrets in URLs
 - Queue from the current catalog, play/pause, seek, previous, and next controls
 - Persistent miniplayer with buffering and playback-error states
+- Embedded JPEG, PNG, and WebP artwork in library, recent, playlist, and player views
+- Artwork fetched with access-code and JWT headers, decoded from memory, and retained in a bounded in-memory LRU cache; secrets are never placed in image URLs
+- Generated initial/icon artwork fallback for missing or invalid images
+- User-scoped native Brain graph with track, artist, album, genre, playlist, and favorites nodes
+- Selectable Brain node details including year, release, duration, codec, favorite, and artwork metadata
+- Admin-only Brain Sync action with exported counts, errors, and automatic graph reload
 
-Artwork, background media controls, shuffle, and repeat are the next player milestones.
+Background media controls, shuffle, and repeat are the next player milestones.
 
 ## Run
 
@@ -41,6 +47,7 @@ Android emulators normally reach a host API through `http://10.0.2.2:3000`. Plai
 dart format --set-exit-if-changed lib test
 flutter analyze
 flutter test
+flutter build apk --release
 ```
 
 Windows builds that use plugins require Windows Developer Mode so Flutter can create symlinks. Enable it in **Settings → System → For developers** before running or building the Windows target.

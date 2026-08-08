@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
@@ -322,6 +323,33 @@ final class ApiClient {
     return QueueTransferResult.fromJson(_decode(response));
   }
 
+  Future<Uint8List?> getTrackArtwork({
+    required String trackId,
+    required String accessCode,
+    required String accessToken,
+  }) async {
+    final response = await _httpClient.get(
+      _resolve('/tracks/$trackId/artwork'),
+      headers: {
+        ..._headers(accessCode, accessToken: accessToken),
+        'Accept': 'image/jpeg, image/png, image/webp',
+      },
+    );
+    if (response.statusCode == 404) return null;
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      _decode(response);
+    }
+    final contentType = response.headers['content-type']?.split(';').first;
+    if (!const {
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+    }.contains(contentType)) {
+      throw const ApiException('Invalid artwork response', statusCode: 502);
+    }
+    return response.bodyBytes;
+  }
+
   Future<BrainGraph> getBrainGraph({
     required String accessCode,
     required String accessToken,
@@ -331,6 +359,17 @@ final class ApiClient {
       headers: _headers(accessCode, accessToken: accessToken),
     );
     return BrainGraph.fromJson(_decode(response));
+  }
+
+  Future<BrainSyncResult> syncBrain({
+    required String accessCode,
+    required String accessToken,
+  }) async {
+    final response = await _httpClient.post(
+      _resolve('/brain/sync'),
+      headers: _headers(accessCode, accessToken: accessToken),
+    );
+    return BrainSyncResult.fromJson(_decode(response));
   }
 
   Uri streamUri(String trackId) => _resolve('/tracks/$trackId/stream');

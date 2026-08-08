@@ -14,7 +14,7 @@ import { isSupportedAudioPath } from '../src/infrastructure/scanner/filesystem-a
 
 const root: LibraryRoot = { id: 'root-1', path: '/music' };
 const metadata: TrackMetadata = {
-  album: 'Album', albumArtists: ['Album Artist'], artists: ['Artist'], bitrate: 320000,
+  album: 'Album', albumArtists: ['Album Artist'], artists: ['Artist'], artwork: null, bitrate: 320000,
   codec: 'MPEG 1 Layer 3', container: 'MPEG', disc: { number: 1, total: 1 },
   durationSeconds: 180, genres: ['Rock'], sampleRate: 44100, title: 'Song',
   track: { number: 2, total: 10 }, year: 2026,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../auth/presentation/auth_controller.dart';
 import '../../library/domain/catalog_track.dart';
+import '../../library/presentation/track_artwork.dart';
 import '../../player/presentation/audio_player_controller.dart';
 import '../../user_data/domain/user_data_models.dart';
 
@@ -60,7 +61,15 @@ final class _RecentScreenState extends State<RecentScreen> {
           final item = _items[index];
           final track = _tracks[item.trackId];
           return ListTile(
-            leading: const Icon(Icons.history),
+            leading: track == null
+                ? const SizedBox.square(
+                    dimension: 48,
+                    child: Card(child: Icon(Icons.history)),
+                  )
+                : TrackArtwork(
+                    track: track,
+                    authController: widget.authController,
+                  ),
             title: Text(
               track?.title ?? 'Titel ${item.trackId.substring(0, 8)}',
             ),
