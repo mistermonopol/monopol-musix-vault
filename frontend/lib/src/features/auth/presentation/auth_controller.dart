@@ -19,6 +19,8 @@ final class AuthController extends ChangeNotifier {
   String? errorMessage;
   String? _accessCode;
 
+  String get serverLabel => api.baseUrl.toString();
+
   Future<void> restore() async {
     final credentials = await store.read();
     if (credentials == null) {

@@ -141,6 +141,12 @@ final class _LoginScreenState extends State<LoginScreen> {
                           _bootstrap ? 'Administrator erstellen' : 'Anmelden',
                         ),
                       ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Version 0.2.0 (2) • ${widget.controller.serverLabel}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                        textAlign: TextAlign.center,
+                      ),
                     ],
                   ),
                 ),
