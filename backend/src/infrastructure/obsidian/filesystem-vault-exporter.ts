@@ -77,15 +77,18 @@ export class FilesystemObsidianVaultExporter implements ObsidianVaultExporter {
     const counts: Record<keyof ObsidianSyncCounts, number> = { albums: 0, artists: 0, genres: 0, tracks: 0 };
     const notes = buildNotes(tracks);
 
-    for (const note of notes) {
-      const target = safeChildPath(root, note.directory, noteFilename(note.name, note.id));
-      try {
-        const existing = await this.writer.read(target);
-        await this.writer.write(target, note.render(preserveUserBody(existing)));
-        counts[`${note.type}s` as keyof ObsidianSyncCounts] += 1;
-      } catch (error: unknown) {
-        errors.push({ message: errorMessage(error), noteId: note.id, noteType: note.type });
-      }
+    const batchSize = 8;
+    for (let index = 0; index < notes.length; index += batchSize) {
+      await Promise.all(notes.slice(index, index + batchSize).map(async (note) => {
+        const target = safeChildPath(root, note.directory, noteFilename(note.name, note.id));
+        try {
+          const existing = await this.writer.read(target);
+          await this.writer.write(target, note.render(preserveUserBody(existing)));
+          counts[`${note.type}s` as keyof ObsidianSyncCounts] += 1;
+        } catch (error: unknown) {
+          errors.push({ message: errorMessage(error), noteId: note.id, noteType: note.type });
+        }
+      }));
     }
 
     return { counts, errors };
