@@ -352,7 +352,13 @@ final class ApiClient {
     }
   }
 
-  Uri _resolve(String path) => baseUrl.resolve(path);
+  Uri _resolve(String path) {
+    final normalizedBase = baseUrl.path.endsWith('/')
+        ? baseUrl
+        : baseUrl.replace(path: '${baseUrl.path}/');
+    final relativePath = path.startsWith('/') ? path.substring(1) : path;
+    return normalizedBase.resolve(relativePath);
+  }
 
   Map<String, String> _headers(String accessCode, {String? accessToken}) => {
     'Content-Type': 'application/json',

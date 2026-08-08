@@ -5,7 +5,7 @@ Native mobile and desktop client for Android, iOS, Windows, macOS, and Linux. Th
 ## Current milestone
 
 - Material 3 application shell
-- Configurable direct API endpoint
+- Configurable API endpoint using the production web `/api` proxy by default
 - Login and first-administrator bootstrap
 - Required `X-Access-Code` support
 - Rotating refresh-session restoration
@@ -21,13 +21,13 @@ Artwork, background media controls, shuffle, and repeat are the next player mile
 
 ## Run
 
-The production API is the default:
+The production web proxy `https://vault.monopol-ai.de/api/` is the default. This keeps the native app on the same routed API path as the working browser client:
 
 ```shell
 flutter run
 ```
 
-Override it for local development or another deployment:
+Override it for local development, a direct API domain, or another deployment. Both root URLs and path-prefixed URLs are supported:
 
 ```shell
 flutter run --dart-define=MMV_API_URL=http://localhost:3000

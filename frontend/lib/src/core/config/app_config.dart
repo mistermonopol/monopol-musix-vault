@@ -4,7 +4,7 @@ final class AppConfig {
   factory AppConfig.fromEnvironment() {
     const value = String.fromEnvironment(
       'MMV_API_URL',
-      defaultValue: 'https://api.vault.monopol-ai.de',
+      defaultValue: 'https://vault.monopol-ai.de/api/',
     );
     return AppConfig(apiBaseUrl: Uri.parse(value));
   }

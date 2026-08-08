@@ -139,6 +139,37 @@ void main() {
     expect(favorites, {'track-id'});
   });
 
+  test('preserves a production proxy prefix for API and stream URLs', () async {
+    final client = ApiClient(
+      baseUrl: Uri.parse('https://vault.example.test/api/'),
+      httpClient: MockClient((request) async {
+        expect(
+          request.url.toString(),
+          'https://vault.example.test/api/auth/login',
+        );
+        return http.Response(
+          jsonEncode({
+            'accessToken': 'access',
+            'refreshToken': 'refresh',
+            'user': {'id': 'user', 'email': 'owner@example.test'},
+          }),
+          200,
+        );
+      }),
+    );
+
+    await client.authenticate(
+      email: 'owner@example.test',
+      password: 'a-secure-password',
+      accessCode: 'private-access-code',
+    );
+
+    expect(
+      client.streamUri('track-id').toString(),
+      'https://vault.example.test/api/tracks/track-id/stream',
+    );
+  });
+
   test('builds a secret-free stream URL', () {
     final client = ApiClient(baseUrl: Uri.parse('https://api.example.test'));
 
