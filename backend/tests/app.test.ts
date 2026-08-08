@@ -348,6 +348,28 @@ describe('HTTP application', () => {
     expect(response.json()).toMatchObject({ code: 'ADMIN_REQUIRED' });
   });
 
+  it('returns an actionable error when the brain mount is not writable', async () => {
+    const unavailable = Object.assign(new Error('permission denied'), { code: 'EACCES' });
+    const app = await buildApp({
+      ...authDependencies,
+      config,
+      databaseHealth: databaseHealth(true),
+      obsidianSync: { execute: async () => { throw unavailable; } },
+    });
+    apps.push(app);
+    const response = await app.inject({
+      headers: { authorization: 'Bearer valid', 'x-access-code': accessCode },
+      method: 'POST',
+      url: '/brain/sync',
+    });
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toEqual({
+      code: 'OBSIDIAN_VAULT_UNAVAILABLE',
+      error: 'Obsidian vault is not writable',
+      statusCode: 503,
+    });
+  });
+
   it('accepts the correct access code', async () => {
     const app = await buildApp({
       ...authDependencies,

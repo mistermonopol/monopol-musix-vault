@@ -10,11 +10,31 @@ services:
     networks:
       - public
 
+  brain-init:
+    image: alpine:3.22
+    restart: "no"
+    user: "0:0"
+    command: ["sh", "-c", "chown -R 10001:10001 /brain && chmod -R u+rwX,go-rwx /brain"]
+    read_only: true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - FOWNER
+      - DAC_OVERRIDE
+    network_mode: none
+    volumes:
+      - type: bind
+        source: /srv/monopol-musix-vault/brain
+        target: /brain
+
   api:
     build:
       context: ./backend
     restart: unless-stopped
     depends_on:
+      brain-init:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
     environment:

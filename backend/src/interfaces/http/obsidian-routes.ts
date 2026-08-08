@@ -31,7 +31,20 @@ export async function registerObsidianRoutes(
           statusCode: 409,
         });
       }
+      if (isVaultUnavailable(error)) {
+        request.log.error({ error }, 'Obsidian vault is unavailable');
+        return reply.status(503).send({
+          code: 'OBSIDIAN_VAULT_UNAVAILABLE',
+          error: 'Obsidian vault is not writable',
+          statusCode: 503,
+        });
+      }
       throw error;
     }
   });
+}
+
+function isVaultUnavailable(error: unknown): boolean {
+  if (!(error instanceof Error) || !('code' in error)) return false;
+  return ['EACCES', 'EPERM', 'EROFS'].includes(String(error.code));
 }
