@@ -8,11 +8,13 @@ final class MiniPlayer extends StatelessWidget {
   const MiniPlayer({
     required this.controller,
     required this.authController,
+    required this.onOpenPlayer,
     super.key,
   });
 
   final AudioPlayerController controller;
   final AuthController authController;
+  final VoidCallback onOpenPlayer;
 
   @override
   Widget build(BuildContext context) {
@@ -68,6 +70,11 @@ final class MiniPlayer extends StatelessWidget {
                         ),
                       ],
                     ),
+                  ),
+                  IconButton(
+                    tooltip: 'Großen Player öffnen',
+                    onPressed: onOpenPlayer,
+                    icon: const Icon(Icons.open_in_full),
                   ),
                   IconButton(
                     tooltip: 'Zurück',

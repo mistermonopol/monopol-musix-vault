@@ -11,6 +11,7 @@ import '../features/library/presentation/library_screen.dart';
 import '../features/local_music/application/local_music_controller.dart';
 import '../features/player/presentation/audio_player_controller.dart';
 import '../features/player/presentation/mini_player.dart';
+import '../features/player/presentation/player_screen.dart';
 import '../features/playlists/presentation/playlists_screen.dart';
 import '../features/recent/presentation/recent_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
@@ -159,6 +160,7 @@ final class _HomeShellState extends State<HomeShell> {
               MiniPlayer(
                 controller: widget.audioController,
                 authController: widget.authController,
+                onOpenPlayer: _openPlayer,
               ),
               if (!wide)
                 NavigationBar(
@@ -174,6 +176,17 @@ final class _HomeShellState extends State<HomeShell> {
   }
 
   void _select(int index) => setState(() => _selectedIndex = index);
+
+  Future<void> _openPlayer() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => PlayerScreen(
+          controller: widget.audioController,
+          authController: widget.authController,
+        ),
+      ),
+    );
+  }
 
   Future<void> _openSettings() async {
     await Navigator.of(context).push<void>(

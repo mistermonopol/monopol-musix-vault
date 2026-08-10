@@ -17,7 +17,8 @@ Native mobile and desktop client for Android, iOS, Windows, macOS, and Linux. Th
 - Explicit authenticated Vault downloads streamed into private app storage, with progress, atomic completion, persistent metadata index, deletion, and local file playback
 - Separate **Auf diesem Gerät** destination with distinct **Downloads** and **Lokale Musik** tabs
 - Android MediaStore integration for device-owned music, runtime audio permission handling, metadata listing, refresh, and `content://` playback without exposing filesystem paths
-- Queue from the current catalog, play/pause, seek, previous, and next controls
+- Queue from the current catalog with play/pause, seek, previous/next, shuffle, and repeat-off/all/one controls
+- Full-screen current-title player with large authenticated cover artwork, metadata, timeline, and playback controls
 - Persistent miniplayer with buffering and playback-error states
 - Embedded JPEG, PNG, and WebP artwork in library, recent, playlist, and player views
 - Artwork fetched with access-code and JWT headers, decoded from memory, and retained in a bounded in-memory LRU cache; secrets are never placed in image URLs

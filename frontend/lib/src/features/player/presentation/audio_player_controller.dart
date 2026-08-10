@@ -6,6 +6,8 @@ import 'package:media_kit/media_kit.dart';
 import '../../library/domain/catalog_track.dart';
 import '../domain/playback_source.dart';
 
+enum PlaybackRepeatMode { off, all, one }
+
 final class AudioPlayerController extends ChangeNotifier {
   AudioPlayerController({Player? player}) : _player = player ?? Player() {
     _subscriptions.addAll([
@@ -31,6 +33,8 @@ final class AudioPlayerController extends ChangeNotifier {
   final List<StreamSubscription<Object?>> _subscriptions = [];
   List<CatalogTrack> _queue = const [];
   CatalogTrack? _currentTrack;
+  bool _shuffleEnabled = false;
+  PlaybackRepeatMode _repeatMode = PlaybackRepeatMode.off;
   String? errorMessage;
 
   CatalogTrack? get currentTrack => _currentTrack;
@@ -38,6 +42,9 @@ final class AudioPlayerController extends ChangeNotifier {
   bool get buffering => _player.state.buffering;
   Duration get position => _player.state.position;
   Duration get duration => _player.state.duration;
+  bool get shuffleEnabled => _shuffleEnabled;
+  PlaybackRepeatMode get repeatMode => _repeatMode;
+  int get queueLength => _queue.length;
   List<String> get queueTrackIds =>
       _queue.map((track) => track.id).toList(growable: false);
   int? get currentIndex {
@@ -72,14 +79,39 @@ final class AudioPlayerController extends ChangeNotifier {
 
   Future<void> playOrPause() => _player.playOrPause();
   Future<void> seek(Duration position) => _player.seek(position);
+
+  Future<void> toggleShuffle() async {
+    _shuffleEnabled = !_shuffleEnabled;
+    await _player.setShuffle(_shuffleEnabled);
+    notifyListeners();
+  }
+
+  Future<void> cycleRepeatMode() async {
+    _repeatMode = switch (_repeatMode) {
+      PlaybackRepeatMode.off => PlaybackRepeatMode.all,
+      PlaybackRepeatMode.all => PlaybackRepeatMode.one,
+      PlaybackRepeatMode.one => PlaybackRepeatMode.off,
+    };
+    await _player.setPlaylistMode(switch (_repeatMode) {
+      PlaybackRepeatMode.off => PlaylistMode.none,
+      PlaybackRepeatMode.all => PlaylistMode.loop,
+      PlaybackRepeatMode.one => PlaylistMode.single,
+    });
+    notifyListeners();
+  }
+
   Future<void> previous() => hasPrevious ? _player.previous() : Future.value();
   Future<void> next() => hasNext ? _player.next() : Future.value();
 
   Future<void> stop() async {
     await _player.stop();
+    await _player.setShuffle(false);
+    await _player.setPlaylistMode(PlaylistMode.none);
     _queue = const [];
     _currentTrack = null;
     errorMessage = null;
+    _shuffleEnabled = false;
+    _repeatMode = PlaybackRepeatMode.off;
     notifyListeners();
   }
 
