@@ -47,14 +47,12 @@ final class _MusixVaultAppState extends State<MusixVaultApp> {
   void initState() {
     super.initState();
     widget.authController.addListener(_refresh);
-    widget.audioController.addListener(_refresh);
     widget.authController.restore();
   }
 
   @override
   void dispose() {
     widget.authController.removeListener(_refresh);
-    widget.audioController.removeListener(_refresh);
     widget.authController.dispose();
     widget.audioController.dispose();
     widget.downloadController.dispose();
