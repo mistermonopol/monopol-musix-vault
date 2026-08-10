@@ -59,10 +59,18 @@ final class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           Text('App', style: Theme.of(context).textTheme.titleMedium),
-          const ListTile(
-            leading: Icon(Icons.info_outline),
-            title: Text('Monopol Musix Vault'),
-            subtitle: Text('Version 0.8.2 (Build 10)'),
+          ListTile(
+            leading: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                'assets/monopol-vault-logo.png',
+                width: 40,
+                height: 40,
+                fit: BoxFit.cover,
+              ),
+            ),
+            title: const Text('Monopol Musix Vault'),
+            subtitle: const Text('Version 0.9.0 (Build 11)'),
           ),
           const Divider(),
           Text('Konto', style: Theme.of(context).textTheme.titleMedium),

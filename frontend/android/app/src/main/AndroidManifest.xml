@@ -8,7 +8,7 @@
     <application
         android:label="Monopol Musix Vault"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@drawable/monopol_vault_logo">
         <activity
             android:name=".MainActivity"
             android:exported="true"

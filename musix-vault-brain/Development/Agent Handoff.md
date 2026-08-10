@@ -2,7 +2,7 @@
 type: development-handoff
 project: Monopol Musix Vault
 status: active
-updated: 2026-08-08
+updated: 2026-08-10
 tags:
   - development/handoff
   - project/monopol-musix-vault
@@ -46,14 +46,20 @@ Backend and clients share no source code. They communicate through the HTTP API.
 16. Validated embedded JPEG/PNG/WebP artwork persisted during scans and fetched through protected byte APIs
 17. Role-aware Settings/Admin areas in Web and Flutter with Brain Sync controls
 18. Automatic missing-cover retrieval through MusicBrainz and Cover Art Archive with admin progress controls
+19. Flutter offline Vault downloads in private app storage with progress, deletion, persistence, and local playback
+20. Android MediaStore music library, separate Downloads/Local Music tabs, and runtime audio permissions
+21. Full-screen title player with large artwork, shuffle, and repeat off/all/one
+22. Custom Monopol Musix Vault launcher icon and in-app branding
 
 ## Current repository state
 
 Latest pushed commit on `main`:
 
 ```text
-f6005a3 Prevent Brain sync timeouts
+a167216 Prevent global playback rebuilds
 ```
+
+Branding and this handoff update are the only newer changes pending in the current work period.
 
 The MVP implementation is committed and pushed. Backend, Web, Flutter, persistent Brain synchronization, enriched graph data, artwork, shared user state, and role-aware admin controls are present. The only user-owned working-tree change is `musix-vault-brain/.obsidian/workspace.json`; preserve it and do not stage, revert, overwrite, or commit it without explicit permission. The only user-owned working-tree change is `musix-vault-brain/.obsidian/workspace.json`; preserve it and do not stage, revert, overwrite, or commit it without explicit permission.
 
@@ -115,7 +121,7 @@ Only playback is expected to be functional across all theme designs at this stag
 
 `frontend/` is a native Flutter client targeting Android, iOS, Windows, macOS, and Linux; browser support remains in `web/`. The production API endpoint defaults to the same working proxy as Web, `https://vault.monopol-ai.de/api/`, and can be overridden with `--dart-define=MMV_API_URL=...`. Never compile the access code into the application.
 
-The Flutter client implements login and first-admin bootstrap, sends `X-Access-Code`, restores sessions by rotating the refresh token, keeps the short-lived access token in memory, and stores the access code and refresh token through platform secure storage. It loads and searches the PostgreSQL catalog and uses `media_kit` for JWT-authenticated HTTP range streaming with queue, seek, play/pause, previous/next, buffering, and error states. Stream credentials are sent only in the bearer header, never in URLs. Windows plugin builds require Windows Developer Mode because Flutter needs symlink support.
+The Flutter client implements login and first-admin bootstrap, sends `X-Access-Code`, restores sessions by rotating the refresh token, keeps the short-lived access token in memory, and stores the access code and refresh token through platform secure storage. It loads and searches the PostgreSQL catalog and uses `media_kit` for JWT-authenticated HTTP range streaming with queue, seek, play/pause, previous/next, shuffle, repeat, buffering, and error states. Stream credentials are sent only in the bearer header, never in URLs. Vault tracks can be downloaded explicitly to private app storage. Android MediaStore music is shown separately and played through `content://` URIs. Windows plugin builds require Windows Developer Mode because Flutter needs symlink support.
 
 ## Cross-client user-state synchronization
 
@@ -142,7 +148,7 @@ f6005a3 Prevent Brain sync timeouts
 Current Android release:
 
 ```text
-Version 0.5.0 (Build 5)
+Version 0.9.0 (Build 11)
 frontend/build/app/outputs/flutter-apk/app-release.apk
 ```
 
@@ -158,6 +164,45 @@ Brain launch fixes:
 Before further feature work, redeploy Coolify from `f6005a3`, wait for `brain-init`, PostgreSQL, and API readiness, then test Brain Sync from both Web and APK Build 4. Confirm generated notes exist under `/srv/monopol-musix-vault/brain`. Run one full library scan after migration `009_create_track_artwork.sql` so embedded covers are populated.
 
 Known boundary: the graph served to clients is a safe PostgreSQL projection. The persistent Markdown vault is exported and human-editable, but bidirectional editorial Markdown import and external Git synchronization are intentionally still TODO.
+
+## End-of-day summary — 2026-08-10
+
+Implemented and pushed during this feature period:
+
+- Automatic missing-cover lookup via MusicBrainz and Cover Art Archive in Backend, Web Admin, and Flutter Admin.
+- Flutter Vault downloads with authenticated streaming, atomic `.part` completion, persistent private index, deletion, and offline playback.
+- **Auf diesem Gerät** navigation with separate **Downloads** and **Lokale Musik** tabs.
+- Android MediaStore bridge with Android 13+ and legacy audio permission handling; database queries run off the Android UI thread.
+- Full-screen current-title player with large cover, timeline, play/pause, previous/next, shuffle, and repeat modes.
+- Shuffle title mapping follows media_kit's actual shuffled media order instead of the original queue order.
+- Player position events no longer rebuild the complete `MaterialApp`; only Mini-/Fullplayer update. This targets the Android ANR seen during local playback.
+- New gold/black Monopol Musix Vault artwork is used as launcher and in-app branding.
+
+Current Android release:
+
+```text
+Version 0.9.0 (Build 11)
+frontend/build/app/outputs/flutter-apk/app-release.apk
+```
+
+Next device checks:
+
+1. Install Build 11 cleanly or update the existing installation and confirm the launcher icon refreshes.
+2. Open a large local MediaStore library, play several local tracks for at least five minutes, and confirm no Android ANR dialog appears.
+3. Enable shuffle, press next repeatedly, and confirm cover/title always match the audible track.
+4. Verify Vault downloads remain playable in airplane mode and are still distinct from MediaStore tracks.
+5. If an ANR remains, capture `adb logcat` and Android's ANR trace; MediaStore query and global Flutter rebuild causes have already been removed.
+
+Important commits:
+
+```text
+ea00368 Add automatic missing-cover lookup
+1528808 Add offline Vault downloads
+2d30de7 Add Android local music library
+35f5bef Add full player and playback modes
+b81a8cf Fix local music ANR and shuffle titles
+a167216 Prevent global playback rebuilds
+```
 
 ## Validation baseline
 

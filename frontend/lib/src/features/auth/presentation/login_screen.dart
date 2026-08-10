@@ -44,7 +44,17 @@ final class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Icon(Icons.graphic_eq_rounded, size: 54),
+                      Center(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(24),
+                          child: Image.asset(
+                            'assets/monopol-vault-logo.png',
+                            width: 112,
+                            height: 112,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: 16),
                       Text(
                         'Monopol Musix Vault',
@@ -143,7 +153,7 @@ final class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Version 0.8.2 (10) • ${widget.controller.serverLabel}',
+                        'Version 0.9.0 (11) • ${widget.controller.serverLabel}',
                         style: Theme.of(context).textTheme.bodySmall,
                         textAlign: TextAlign.center,
                       ),
