@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../local_music/application/local_music_controller.dart';
+import '../../local_music/domain/local_music_track.dart';
 import '../../player/presentation/audio_player_controller.dart';
 import '../application/download_controller.dart';
 import '../domain/downloaded_track.dart';
@@ -9,11 +11,13 @@ import '../domain/downloaded_track.dart';
 final class OnDeviceScreen extends StatefulWidget {
   const OnDeviceScreen({
     required this.downloadController,
+    required this.localMusicController,
     required this.audioController,
     super.key,
   });
 
   final DownloadController downloadController;
+  final LocalMusicController localMusicController;
   final AudioPlayerController audioController;
 
   @override
@@ -21,18 +25,20 @@ final class OnDeviceScreen extends StatefulWidget {
 }
 
 final class _OnDeviceScreenState extends State<OnDeviceScreen> {
-  Object? _error;
+  Object? _downloadError;
 
   @override
   void initState() {
     super.initState();
     widget.downloadController.addListener(_refresh);
-    unawaited(_initialize());
+    widget.localMusicController.addListener(_refresh);
+    unawaited(_initializeDownloads());
   }
 
   @override
   void dispose() {
     widget.downloadController.removeListener(_refresh);
+    widget.localMusicController.removeListener(_refresh);
     super.dispose();
   }
 
@@ -40,75 +46,158 @@ final class _OnDeviceScreenState extends State<OnDeviceScreen> {
     if (mounted) setState(() {});
   }
 
-  Future<void> _initialize() async {
+  Future<void> _initializeDownloads() async {
     try {
       await widget.downloadController.initialize();
     } catch (error) {
-      if (mounted) setState(() => _error = error);
+      if (mounted) setState(() => _downloadError = error);
     }
   }
 
   @override
-  Widget build(BuildContext context) {
-    final downloads = widget.downloadController.downloads;
-    return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.all(16),
+  Widget build(BuildContext context) => SafeArea(
+    child: DefaultTabController(
+      length: 2,
+      child: Column(
         children: [
-          Text('Downloads', style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 4),
-          const Text(
-            'Explizit aus dem Vault geladene Titel für die Offline-Wiedergabe.',
+          const TabBar(
+            tabs: [
+              Tab(icon: Icon(Icons.download_done), text: 'Downloads'),
+              Tab(icon: Icon(Icons.audio_file_outlined), text: 'Lokale Musik'),
+            ],
           ),
-          const SizedBox(height: 12),
-          if (_error case final error?)
-            Text('Downloads konnten nicht geladen werden: $error')
-          else if (downloads.isEmpty)
-            const Card(
-              child: ListTile(
-                leading: Icon(Icons.download_done_outlined),
-                title: Text('Noch keine Downloads'),
-                subtitle: Text(
-                  'Lade Titel in der Bibliothek auf dieses Gerät.',
-                ),
-              ),
-            )
-          else
-            for (var index = 0; index < downloads.length; index++)
-              _DownloadTile(
-                item: downloads[index],
-                selected:
-                    widget.audioController.currentTrack?.id ==
-                    downloads[index].track.id,
-                onPlay: () => _play(index),
-                onDelete: () => _delete(downloads[index]),
-              ),
-          const SizedBox(height: 28),
-          Text(
-            'Lokale Musik',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 8),
-          const Card(
-            child: ListTile(
-              enabled: false,
-              leading: Icon(Icons.folder_off_outlined),
-              title: Text('Nicht importiert'),
-              subtitle: Text(
-                'Der Import vorhandener Musikdateien ist für eine zukünftige Phase vorgesehen. Lokale Musik ist nicht dasselbe wie Vault-Downloads.',
-              ),
-              trailing: Chip(label: Text('Zukünftig')),
-            ),
-          ),
+          Expanded(child: TabBarView(children: [_downloads(), _localMusic()])),
         ],
+      ),
+    ),
+  );
+
+  Widget _downloads() {
+    final downloads = widget.downloadController.downloads;
+    if (_downloadError case final error?) {
+      return _MessageView(
+        icon: Icons.error_outline,
+        title: 'Downloads konnten nicht geladen werden',
+        message: '$error',
+      );
+    }
+    if (downloads.isEmpty) {
+      return const _MessageView(
+        icon: Icons.download_for_offline_outlined,
+        title: 'Noch keine Downloads',
+        message:
+            'Lade Titel in der Bibliothek herunter, um sie ohne Internet abzuspielen.',
+      );
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+      itemCount: downloads.length,
+      separatorBuilder: (_, _) => const Divider(height: 1),
+      itemBuilder: (context, index) {
+        final item = downloads[index];
+        return ListTile(
+          leading: const CircleAvatar(child: Icon(Icons.download_done)),
+          title: Text(
+            item.track.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: Text(
+            '${item.track.artistLabel} • ${_formatBytes(item.sizeBytes)}',
+          ),
+          selected: widget.audioController.currentTrack?.id == item.track.id,
+          onTap: () => _playDownloads(index),
+          trailing: IconButton(
+            tooltip: 'Download löschen',
+            onPressed: () => _delete(item),
+            icon: const Icon(Icons.delete_outline),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _localMusic() {
+    final controller = widget.localMusicController;
+    if (controller.loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (controller.access == LocalMusicAccess.unknown) {
+      return _MessageView(
+        icon: Icons.library_music_outlined,
+        title: 'Musik auf diesem Gerät',
+        message:
+            'Durchsuche Androids Mediathek nach vorhandenen Audiodateien. Vault-Downloads bleiben separat.',
+        action: FilledButton.icon(
+          onPressed: controller.load,
+          icon: const Icon(Icons.folder_open),
+          label: const Text('Lokale Musik anzeigen'),
+        ),
+      );
+    }
+    if (controller.access == LocalMusicAccess.denied) {
+      return _MessageView(
+        icon: Icons.no_accounts_outlined,
+        title: 'Zugriff nicht erlaubt',
+        message:
+            controller.errorMessage ??
+            'Erlaube den Zugriff auf Musik und Audio in den Android-Einstellungen.',
+        action: OutlinedButton.icon(
+          onPressed: controller.load,
+          icon: const Icon(Icons.refresh),
+          label: const Text('Erneut versuchen'),
+        ),
+      );
+    }
+    if (controller.access == LocalMusicAccess.unsupported) {
+      return _MessageView(
+        icon: Icons.phone_android_outlined,
+        title: 'Nur auf Android verfügbar',
+        message:
+            controller.errorMessage ??
+            'Die lokale Mediathek wird auf dieser Plattform noch nicht unterstützt.',
+      );
+    }
+    if (controller.tracks.isEmpty) {
+      return _MessageView(
+        icon: Icons.audio_file_outlined,
+        title: 'Keine lokale Musik gefunden',
+        message: 'Androids Mediathek enthält aktuell keine Musikdateien.',
+        action: OutlinedButton.icon(
+          onPressed: controller.load,
+          icon: const Icon(Icons.refresh),
+          label: const Text('Neu einlesen'),
+        ),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: controller.load,
+      child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+        itemCount: controller.tracks.length,
+        separatorBuilder: (_, _) => const Divider(height: 1),
+        itemBuilder: (context, index) {
+          final item = controller.tracks[index];
+          return _LocalTrackTile(
+            item: item,
+            selected: widget.audioController.currentTrack?.id == item.track.id,
+            onPlay: () => _playLocal(index),
+          );
+        },
       ),
     );
   }
 
-  Future<void> _play(int index) async {
+  Future<void> _playDownloads(int index) => widget.audioController.playQueue(
+    widget.downloadController.localPlaybackSources(),
+    index,
+  );
+
+  Future<void> _playLocal(int index) async {
     try {
       await widget.audioController.playQueue(
-        widget.downloadController.localPlaybackSources(),
+        widget.localMusicController.playbackSources(),
         index,
       );
     } catch (error) {
@@ -134,36 +223,6 @@ final class _OnDeviceScreenState extends State<OnDeviceScreen> {
       );
     }
   }
-}
-
-final class _DownloadTile extends StatelessWidget {
-  const _DownloadTile({
-    required this.item,
-    required this.selected,
-    required this.onPlay,
-    required this.onDelete,
-  });
-
-  final DownloadedTrack item;
-  final bool selected;
-  final VoidCallback onPlay;
-  final VoidCallback onDelete;
-
-  @override
-  Widget build(BuildContext context) => ListTile(
-    leading: const CircleAvatar(child: Icon(Icons.download_done)),
-    title: Text(item.track.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-    subtitle: Text(
-      '${item.track.artistLabel} • ${_formatBytes(item.sizeBytes)}',
-    ),
-    selected: selected,
-    onTap: onPlay,
-    trailing: IconButton(
-      tooltip: 'Download löschen',
-      onPressed: onDelete,
-      icon: const Icon(Icons.delete_outline),
-    ),
-  );
 
   String _formatBytes(int bytes) {
     if (bytes >= 1024 * 1024) {
@@ -171,4 +230,64 @@ final class _DownloadTile extends StatelessWidget {
     }
     return '${(bytes / 1024).toStringAsFixed(1)} KB';
   }
+}
+
+final class _LocalTrackTile extends StatelessWidget {
+  const _LocalTrackTile({
+    required this.item,
+    required this.selected,
+    required this.onPlay,
+  });
+  final LocalMusicTrack item;
+  final bool selected;
+  final VoidCallback onPlay;
+
+  @override
+  Widget build(BuildContext context) => ListTile(
+    leading: const CircleAvatar(child: Icon(Icons.audio_file)),
+    title: Text(item.track.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+    subtitle: Text(
+      [item.track.artistLabel, ?item.track.album].join(' • '),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    ),
+    trailing: const Chip(label: Text('Lokal')),
+    selected: selected,
+    onTap: onPlay,
+  );
+}
+
+final class _MessageView extends StatelessWidget {
+  const _MessageView({
+    required this.icon,
+    required this.title,
+    required this.message,
+    this.action,
+  });
+  final IconData icon;
+  final String title;
+  final String message;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 64),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleLarge,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 6),
+          Text(message, textAlign: TextAlign.center),
+          if (action != null) ...[const SizedBox(height: 18), action!],
+        ],
+      ),
+    ),
+  );
 }

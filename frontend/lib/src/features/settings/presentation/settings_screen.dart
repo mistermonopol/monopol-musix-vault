@@ -62,7 +62,7 @@ final class _SettingsScreenState extends State<SettingsScreen> {
           const ListTile(
             leading: Icon(Icons.info_outline),
             title: Text('Monopol Musix Vault'),
-            subtitle: Text('Version 0.6.0 (Build 6)'),
+            subtitle: Text('Version 0.7.0 (Build 7)'),
           ),
           const Divider(),
           Text('Konto', style: Theme.of(context).textTheme.titleMedium),

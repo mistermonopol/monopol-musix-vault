@@ -6,6 +6,7 @@ import '../features/auth/data/session_store.dart';
 import '../features/auth/presentation/auth_controller.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/downloads/application/download_controller.dart';
+import '../features/local_music/application/local_music_controller.dart';
 import 'home_shell.dart';
 import '../features/player/presentation/audio_player_controller.dart';
 
@@ -14,6 +15,7 @@ final class MusixVaultApp extends StatefulWidget {
     required this.authController,
     required this.audioController,
     required this.downloadController,
+    required this.localMusicController,
     super.key,
   });
 
@@ -27,12 +29,14 @@ final class MusixVaultApp extends StatefulWidget {
       authController: authController,
       audioController: AudioPlayerController(),
       downloadController: DownloadController(authController: authController),
+      localMusicController: LocalMusicController(),
     );
   }
 
   final AuthController authController;
   final AudioPlayerController audioController;
   final DownloadController downloadController;
+  final LocalMusicController localMusicController;
 
   @override
   State<MusixVaultApp> createState() => _MusixVaultAppState();
@@ -54,6 +58,7 @@ final class _MusixVaultAppState extends State<MusixVaultApp> {
     widget.authController.dispose();
     widget.audioController.dispose();
     widget.downloadController.dispose();
+    widget.localMusicController.dispose();
     super.dispose();
   }
 
@@ -89,6 +94,7 @@ final class _MusixVaultAppState extends State<MusixVaultApp> {
       authController: widget.authController,
       audioController: widget.audioController,
       downloadController: widget.downloadController,
+      localMusicController: widget.localMusicController,
     ),
   };
 }

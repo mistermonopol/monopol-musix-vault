@@ -8,6 +8,7 @@ import '../features/devices/presentation/devices_screen.dart';
 import '../features/downloads/application/download_controller.dart';
 import '../features/downloads/presentation/on_device_screen.dart';
 import '../features/library/presentation/library_screen.dart';
+import '../features/local_music/application/local_music_controller.dart';
 import '../features/player/presentation/audio_player_controller.dart';
 import '../features/player/presentation/mini_player.dart';
 import '../features/playlists/presentation/playlists_screen.dart';
@@ -20,11 +21,13 @@ final class HomeShell extends StatefulWidget {
     required this.authController,
     required this.audioController,
     required this.downloadController,
+    required this.localMusicController,
     super.key,
   });
   final AuthController authController;
   final AudioPlayerController audioController;
   final DownloadController downloadController;
+  final LocalMusicController localMusicController;
   @override
   State<HomeShell> createState() => _HomeShellState();
 }
@@ -100,6 +103,7 @@ final class _HomeShellState extends State<HomeShell> {
       ),
       OnDeviceScreen(
         downloadController: widget.downloadController,
+        localMusicController: widget.localMusicController,
         audioController: widget.audioController,
       ),
       DevicesScreen(
