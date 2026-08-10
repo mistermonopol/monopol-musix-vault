@@ -1,7 +1,7 @@
 name: monopol_musix_vault
 description: "Private mobile and desktop client for Monopol Musix Vault"
 publish_to: 'none'
-version: 0.5.0+5
+version: 0.6.0+6
 
 environment:
   sdk: ^3.12.2
@@ -14,6 +14,7 @@ dependencies:
   http: ^1.6.0
   media_kit: ^1.2.6
   media_kit_libs_audio: ^1.0.7
+  path_provider: ^2.1.5
 
 dev_dependencies:
   flutter_test:

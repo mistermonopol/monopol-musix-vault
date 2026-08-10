@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
@@ -395,6 +396,45 @@ final class ApiClient {
       headers: _headers(accessCode, accessToken: accessToken),
     );
     return BrainSyncResult.fromJson(_decode(response));
+  }
+
+  Future<int> downloadTrack({
+    required String trackId,
+    required String accessCode,
+    required String accessToken,
+    required IOSink destination,
+    void Function(int received, int? total)? onProgress,
+  }) async {
+    final request = http.Request('GET', _resolve('/tracks/$trackId/stream'));
+    request.headers.addAll(
+      _headers(accessCode, accessToken: accessToken)..remove('Content-Type'),
+    );
+    final response = await _httpClient.send(request);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      await response.stream.drain<void>();
+      throw ApiException(
+        'Download fehlgeschlagen (${response.statusCode})',
+        statusCode: response.statusCode,
+      );
+    }
+    final total = response.contentLength;
+    if (total == 0) {
+      await response.stream.drain<void>();
+      throw const ApiException('Leere Download-Antwort', statusCode: 502);
+    }
+    var received = 0;
+    await for (final chunk in response.stream) {
+      destination.add(chunk);
+      received += chunk.length;
+      onProgress?.call(received, total);
+    }
+    if (received == 0) {
+      throw const ApiException('Leere Download-Antwort', statusCode: 502);
+    }
+    if (total != null && received != total) {
+      throw const ApiException('Unvollständiger Download', statusCode: 502);
+    }
+    return received;
   }
 
   Uri streamUri(String trackId) => _resolve('/tracks/$trackId/stream');

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../auth/presentation/auth_controller.dart';
+import '../../downloads/application/download_controller.dart';
 import '../domain/catalog_track.dart';
 import 'track_artwork.dart';
 import '../../player/presentation/audio_player_controller.dart';
@@ -11,11 +12,13 @@ final class LibraryScreen extends StatefulWidget {
   const LibraryScreen({
     required this.authController,
     required this.audioController,
+    required this.downloadController,
     super.key,
   });
 
   final AuthController authController;
   final AudioPlayerController audioController;
+  final DownloadController downloadController;
 
   @override
   State<LibraryScreen> createState() => _LibraryScreenState();
@@ -34,12 +37,15 @@ final class _LibraryScreenState extends State<LibraryScreen> {
   @override
   void initState() {
     super.initState();
+    widget.downloadController.addListener(_downloadsChanged);
+    unawaited(widget.downloadController.initialize());
     _load();
   }
 
   @override
   void dispose() {
     _searchTimer?.cancel();
+    widget.downloadController.removeListener(_downloadsChanged);
     _searchController.dispose();
     super.dispose();
   }
@@ -160,6 +166,7 @@ final class _LibraryScreenState extends State<LibraryScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(_formatDuration(track.durationSeconds)),
+                _downloadControl(track),
                 IconButton(
                   tooltip: _favoriteIds.contains(track.id)
                       ? 'Aus Favoriten entfernen'
@@ -184,6 +191,58 @@ final class _LibraryScreenState extends State<LibraryScreen> {
         },
       ),
     );
+  }
+
+  Widget _downloadControl(CatalogTrack track) {
+    final downloaded = widget.downloadController.downloaded(track.id) != null;
+    final progress = widget.downloadController.progress(track.id);
+    if (progress?.state == DownloadState.downloading) {
+      return SizedBox.square(
+        dimension: 40,
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            value: progress?.fraction,
+          ),
+        ),
+      );
+    }
+    if (downloaded) {
+      return const Tooltip(
+        message: 'Auf diesem Gerät',
+        child: Padding(
+          padding: EdgeInsets.all(8),
+          child: Icon(Icons.download_done),
+        ),
+      );
+    }
+    return IconButton(
+      tooltip: progress?.state == DownloadState.failed
+          ? 'Download erneut versuchen'
+          : 'Auf dieses Gerät herunterladen',
+      onPressed: () => _download(track),
+      icon: Icon(
+        progress?.state == DownloadState.failed
+            ? Icons.error_outline
+            : Icons.download_outlined,
+      ),
+    );
+  }
+
+  void _downloadsChanged() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _download(CatalogTrack track) async {
+    try {
+      await widget.downloadController.download(track);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Download fehlgeschlagen: $error')),
+      );
+    }
   }
 
   Future<void> _toggleFavorite(CatalogTrack track) async {

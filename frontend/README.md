@@ -14,6 +14,8 @@ Native mobile and desktop client for Android, iOS, Windows, macOS, and Linux. Th
 - Authenticated catalog loading with title, artist, album, duration, search, and pull-to-refresh
 - Cross-platform `media_kit` audio engine
 - JWT-authenticated HTTP range streaming without secrets in URLs
+- Explicit authenticated Vault downloads streamed into private app storage, with progress, atomic completion, persistent metadata index, deletion, and local file playback
+- Separate “Auf diesem Gerät” destination for Vault downloads; local-file import remains clearly marked as a future feature
 - Queue from the current catalog, play/pause, seek, previous, and next controls
 - Persistent miniplayer with buffering and playback-error states
 - Embedded JPEG, PNG, and WebP artwork in library, recent, playlist, and player views

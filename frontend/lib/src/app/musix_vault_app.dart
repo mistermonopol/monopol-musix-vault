@@ -5,6 +5,7 @@ import '../core/config/app_config.dart';
 import '../features/auth/data/session_store.dart';
 import '../features/auth/presentation/auth_controller.dart';
 import '../features/auth/presentation/login_screen.dart';
+import '../features/downloads/application/download_controller.dart';
 import 'home_shell.dart';
 import '../features/player/presentation/audio_player_controller.dart';
 
@@ -12,22 +13,26 @@ final class MusixVaultApp extends StatefulWidget {
   const MusixVaultApp({
     required this.authController,
     required this.audioController,
+    required this.downloadController,
     super.key,
   });
 
   factory MusixVaultApp.bootstrap() {
     final config = AppConfig.fromEnvironment();
+    final authController = AuthController(
+      api: ApiClient(baseUrl: config.apiBaseUrl),
+      store: SecureSessionStore(),
+    );
     return MusixVaultApp(
-      authController: AuthController(
-        api: ApiClient(baseUrl: config.apiBaseUrl),
-        store: SecureSessionStore(),
-      ),
+      authController: authController,
       audioController: AudioPlayerController(),
+      downloadController: DownloadController(authController: authController),
     );
   }
 
   final AuthController authController;
   final AudioPlayerController audioController;
+  final DownloadController downloadController;
 
   @override
   State<MusixVaultApp> createState() => _MusixVaultAppState();
@@ -48,6 +53,7 @@ final class _MusixVaultAppState extends State<MusixVaultApp> {
     widget.audioController.removeListener(_refresh);
     widget.authController.dispose();
     widget.audioController.dispose();
+    widget.downloadController.dispose();
     super.dispose();
   }
 
@@ -82,6 +88,7 @@ final class _MusixVaultAppState extends State<MusixVaultApp> {
     AuthStatus.signedIn => HomeShell(
       authController: widget.authController,
       audioController: widget.audioController,
+      downloadController: widget.downloadController,
     ),
   };
 }

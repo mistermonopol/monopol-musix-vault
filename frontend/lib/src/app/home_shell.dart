@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import '../features/auth/presentation/auth_controller.dart';
 import '../features/brain/presentation/brain_screen.dart';
 import '../features/devices/presentation/devices_screen.dart';
+import '../features/downloads/application/download_controller.dart';
+import '../features/downloads/presentation/on_device_screen.dart';
 import '../features/library/presentation/library_screen.dart';
 import '../features/player/presentation/audio_player_controller.dart';
 import '../features/player/presentation/mini_player.dart';
@@ -17,10 +19,12 @@ final class HomeShell extends StatefulWidget {
   const HomeShell({
     required this.authController,
     required this.audioController,
+    required this.downloadController,
     super.key,
   });
   final AuthController authController;
   final AudioPlayerController audioController;
+  final DownloadController downloadController;
   @override
   State<HomeShell> createState() => _HomeShellState();
 }
@@ -45,6 +49,12 @@ final class _HomeShellState extends State<HomeShell> {
       selectedIcon: Icon(Icons.queue_music),
       label: 'Playlists',
     ),
+    NavigationDestination(
+      icon: Icon(Icons.download_for_offline_outlined),
+      selectedIcon: Icon(Icons.download_for_offline),
+      label: 'Auf diesem Gerät',
+    ),
+
     NavigationDestination(
       icon: Icon(Icons.devices_outlined),
       selectedIcon: Icon(Icons.devices),
@@ -78,6 +88,7 @@ final class _HomeShellState extends State<HomeShell> {
         key: ValueKey(_libraryRevision),
         authController: widget.authController,
         audioController: widget.audioController,
+        downloadController: widget.downloadController,
       ),
       RecentScreen(
         authController: widget.authController,
@@ -85,6 +96,10 @@ final class _HomeShellState extends State<HomeShell> {
       ),
       PlaylistsScreen(
         authController: widget.authController,
+        audioController: widget.audioController,
+      ),
+      OnDeviceScreen(
+        downloadController: widget.downloadController,
         audioController: widget.audioController,
       ),
       DevicesScreen(
@@ -163,7 +178,7 @@ final class _HomeShellState extends State<HomeShell> {
           authController: widget.authController,
           onOpenBrain: () {
             Navigator.of(settingsContext).pop();
-            _select(4);
+            _select(5);
           },
           onArtworkLookupCompleted: () {
             widget.authController.invalidateArtworkCache();

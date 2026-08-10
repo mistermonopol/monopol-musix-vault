@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
@@ -355,6 +356,21 @@ final class AuthController extends ChangeNotifier {
     return (
       accessCode: currentAccessCode,
       accessToken: currentSession.accessToken,
+    );
+  }
+
+  Future<int> downloadTrack(
+    String trackId,
+    IOSink destination, {
+    void Function(int received, int? total)? onProgress,
+  }) {
+    final c = _activeCredentials();
+    return api.downloadTrack(
+      trackId: trackId,
+      accessCode: c.accessCode,
+      accessToken: c.accessToken,
+      destination: destination,
+      onProgress: onProgress,
     );
   }
 

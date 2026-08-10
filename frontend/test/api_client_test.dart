@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -179,6 +180,72 @@ void main() {
 
     expect(uri.toString(), 'https://api.example.test/tracks/track-id/stream');
     expect(uri.hasQuery, isFalse);
+  });
+
+  test('streams authenticated track downloads without URL secrets', () async {
+    final bytes = List<int>.generate(32 * 1024, (index) => index % 256);
+    final client = ApiClient(
+      baseUrl: Uri.parse('https://api.example.test'),
+      httpClient: MockClient((request) async {
+        expect(request.method, 'GET');
+        expect(request.url.path, '/tracks/track-id/stream');
+        expect(request.url.query, isEmpty);
+        expect(request.headers['X-Access-Code'], 'private-code');
+        expect(request.headers['Authorization'], 'Bearer access-token');
+        return http.Response.bytes(
+          bytes,
+          200,
+          headers: {'content-length': '${bytes.length}'},
+        );
+      }),
+    );
+    final directory = await Directory.systemTemp.createTemp(
+      'vault-download-test',
+    );
+    final file = File('${directory.path}/track.part');
+    final sink = file.openWrite();
+    final progress = <int>[];
+
+    try {
+      final size = await client.downloadTrack(
+        trackId: 'track-id',
+        accessCode: 'private-code',
+        accessToken: 'access-token',
+        destination: sink,
+        onProgress: (received, _) => progress.add(received),
+      );
+      await sink.close();
+
+      expect(size, bytes.length);
+      expect(await file.length(), bytes.length);
+      expect(progress.last, bytes.length);
+    } finally {
+      await directory.delete(recursive: true);
+    }
+  });
+
+  test('rejects an empty successful download response', () async {
+    final client = ApiClient(
+      baseUrl: Uri.parse('https://api.example.test'),
+      httpClient: MockClient((_) async => http.Response('', 200)),
+    );
+    final directory = await Directory.systemTemp.createTemp('vault-empty-test');
+    final sink = File('${directory.path}/track.part').openWrite();
+
+    try {
+      await expectLater(
+        client.downloadTrack(
+          trackId: 'track-id',
+          accessCode: 'code',
+          accessToken: 'token',
+          destination: sink,
+        ),
+        throwsA(isA<ApiException>()),
+      );
+      await sink.close();
+    } finally {
+      await directory.delete(recursive: true);
+    }
   });
 
   test('fetches artwork bytes with both authentication layers', () async {

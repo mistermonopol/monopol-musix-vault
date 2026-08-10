@@ -41,6 +41,16 @@ final class CatalogTrack {
 
   String get artistLabel =>
       artists.isEmpty ? 'Unbekannter Künstler' : artists.join(', ');
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'title': title,
+    'artists': artists.map((name) => {'name': name}).toList(growable: false),
+    'album': album == null ? null : {'title': album},
+    'durationSeconds': durationSeconds,
+    'year': year,
+    'hasArtwork': hasArtwork,
+  };
 }
 
 final class CatalogPage {
