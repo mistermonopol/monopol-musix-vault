@@ -1,7 +1,7 @@
 name: monopol_musix_vault
 description: "Private mobile and desktop client for Monopol Musix Vault"
 publish_to: 'none'
-version: 0.8.0+8
+version: 0.8.1+9
 
 environment:
   sdk: ^3.12.2

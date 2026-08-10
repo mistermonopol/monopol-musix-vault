@@ -10,11 +10,13 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import java.util.concurrent.Executors
 
 class MainActivity : FlutterActivity() {
     private val channelName = "de.monopol.musix_vault/local_music"
     private val permissionRequestCode = 9042
     private var pendingResult: MethodChannel.Result? = null
+    private val mediaStoreExecutor = Executors.newSingleThreadExecutor()
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -28,7 +30,7 @@ class MainActivity : FlutterActivity() {
             return
         }
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            result.success(queryAudio())
+            queryAudioAsync(result)
             return
         }
         val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -37,7 +39,7 @@ class MainActivity : FlutterActivity() {
             Manifest.permission.READ_EXTERNAL_STORAGE
         }
         if (checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED) {
-            result.success(queryAudio())
+            queryAudioAsync(result)
             return
         }
         if (pendingResult != null) {
@@ -58,13 +60,36 @@ class MainActivity : FlutterActivity() {
         val result = pendingResult ?: return
         pendingResult = null
         if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) {
-            result.success(queryAudio())
+            queryAudioAsync(result)
         } else {
             result.error(
                 "PERMISSION_DENIED",
                 "Zugriff auf lokale Audiodateien wurde nicht erlaubt.",
                 null,
             )
+        }
+    }
+
+    override fun onDestroy() {
+        mediaStoreExecutor.shutdownNow()
+        pendingResult = null
+        super.onDestroy()
+    }
+
+    private fun queryAudioAsync(result: MethodChannel.Result) {
+        mediaStoreExecutor.execute {
+            try {
+                val tracks = queryAudio()
+                runOnUiThread { result.success(tracks) }
+            } catch (error: Exception) {
+                runOnUiThread {
+                    result.error(
+                        "MEDIASTORE_ERROR",
+                        "Lokale Musik konnte nicht gelesen werden.",
+                        null,
+                    )
+                }
+            }
         }
     }
 

@@ -16,6 +16,13 @@ final class AudioPlayerController extends ChangeNotifier {
       _player.stream.duration.listen((_) => notifyListeners()),
       _player.stream.buffering.listen((_) => notifyListeners()),
       _player.stream.playlist.listen((state) {
+        final mappedQueue = state.medias
+            .map((media) => _trackByUri[media.uri])
+            .whereType<CatalogTrack>()
+            .toList(growable: false);
+        if (mappedQueue.length == state.medias.length) {
+          _queue = mappedQueue;
+        }
         final index = state.index;
         _currentTrack = index >= 0 && index < _queue.length
             ? _queue[index]
@@ -32,6 +39,7 @@ final class AudioPlayerController extends ChangeNotifier {
   final Player _player;
   final List<StreamSubscription<Object?>> _subscriptions = [];
   List<CatalogTrack> _queue = const [];
+  final Map<String, CatalogTrack> _trackByUri = {};
   CatalogTrack? _currentTrack;
   bool _shuffleEnabled = false;
   PlaybackRepeatMode _repeatMode = PlaybackRepeatMode.off;
@@ -62,6 +70,11 @@ final class AudioPlayerController extends ChangeNotifier {
     if (sources.isEmpty || index < 0 || index >= sources.length) return;
     errorMessage = null;
     _queue = sources.map((source) => source.track).toList(growable: false);
+    _trackByUri
+      ..clear()
+      ..addEntries(
+        sources.map((source) => MapEntry(source.uri.toString(), source.track)),
+      );
     _currentTrack = _queue[index];
     notifyListeners();
     await _player.open(
@@ -108,6 +121,7 @@ final class AudioPlayerController extends ChangeNotifier {
     await _player.setShuffle(false);
     await _player.setPlaylistMode(PlaylistMode.none);
     _queue = const [];
+    _trackByUri.clear();
     _currentTrack = null;
     errorMessage = null;
     _shuffleEnabled = false;
