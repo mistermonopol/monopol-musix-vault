@@ -153,7 +153,7 @@ final class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Version 0.10.1 (13) • ${widget.controller.serverLabel}',
+                        'Version 0.10.2 (14) • ${widget.controller.serverLabel}',
                         style: Theme.of(context).textTheme.bodySmall,
                         textAlign: TextAlign.center,
                       ),

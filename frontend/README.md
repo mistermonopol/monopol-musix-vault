@@ -16,7 +16,7 @@ Native mobile and desktop client for Android, iOS, Windows, macOS, and Linux. Th
 - JWT-authenticated HTTP range streaming without secrets in URLs
 - Explicit authenticated Vault downloads streamed into private app storage, with progress, atomic completion, persistent metadata index, deletion, and local file playback
 - Separate **Auf diesem Gerät** destination with distinct **Downloads** and **Lokale Musik** tabs
-- Android MediaStore integration for device-owned music, runtime audio permission handling, metadata listing, and refresh
+- Android MediaStore integration for device-owned music, runtime audio permission handling, metadata listing, and refresh; filenames/titles beginning with `AUD` are hidden to exclude WhatsApp audio clips
 - Crash-safe local playback preparation: selected `content://` audio is copied atomically on a background thread into private app cache before `media_kit` opens it
 - Queue from the current catalog with play/pause, seek, previous/next, shuffle, and repeat-off/all/one controls
 - Full-screen current-title player with large authenticated cover artwork, metadata, timeline, and playback controls

@@ -164,14 +164,15 @@ class MainActivity : AudioServiceActivity() {
             MediaStore.Audio.Media.ARTIST,
             MediaStore.Audio.Media.ALBUM,
             MediaStore.Audio.Media.DURATION,
+            MediaStore.Audio.Media.DISPLAY_NAME,
         )
-        val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0 AND ${MediaStore.Audio.Media.DURATION} > 0"
+        val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0 AND ${MediaStore.Audio.Media.DURATION} > 0 AND ${MediaStore.Audio.Media.DISPLAY_NAME} NOT LIKE ?"
         val tracks = mutableListOf<Map<String, Any?>>()
         contentResolver.query(
             collection,
             projection,
             selection,
-            null,
+            arrayOf("AUD%"),
             "${MediaStore.Audio.Media.TITLE} COLLATE NOCASE ASC",
         )?.use { cursor ->
             val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)

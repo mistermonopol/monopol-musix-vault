@@ -30,6 +30,10 @@ final class LocalMusicController extends ChangeNotifier {
       tracks = (values ?? const [])
           .whereType<Map<Object?, Object?>>()
           .map(LocalMusicTrack.fromPlatform)
+          .where(
+            (item) =>
+                !item.track.title.trimLeft().toUpperCase().startsWith('AUD'),
+          )
           .toList(growable: false);
       access = LocalMusicAccess.granted;
     } on PlatformException catch (error) {

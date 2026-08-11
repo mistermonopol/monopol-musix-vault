@@ -70,7 +70,7 @@ final class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             title: const Text('Monopol Musix Vault'),
-            subtitle: const Text('Version 0.10.1 (Build 13)'),
+            subtitle: const Text('Version 0.10.2 (Build 14)'),
           ),
           const Divider(),
           Text('Konto', style: Theme.of(context).textTheme.titleMedium),
