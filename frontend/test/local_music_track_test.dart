@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:monopol_musix_vault/src/features/local_music/domain/local_music_track.dart';
 
 void main() {
-  test('maps MediaStore metadata to a distinct local playback source', () {
+  test('maps MediaStore metadata to a distinct local track', () {
     final item = LocalMusicTrack.fromPlatform({
       'id': 42,
       'title': 'Local Song',
@@ -16,8 +16,8 @@ void main() {
     expect(item.track.title, 'Local Song');
     expect(item.track.artistLabel, 'Device Artist');
     expect(item.track.durationSeconds, 123);
-    expect(item.toPlaybackSource().uri.scheme, 'content');
-    expect(item.toPlaybackSource().headers, isEmpty);
+    expect(item.contentUri.scheme, 'content');
+    expect(item.contentUri.authority, 'media');
   });
 
   test('normalizes unknown Android metadata', () {

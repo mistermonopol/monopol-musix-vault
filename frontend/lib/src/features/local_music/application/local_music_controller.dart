@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
@@ -16,6 +18,7 @@ final class LocalMusicController extends ChangeNotifier {
   LocalMusicAccess access = LocalMusicAccess.unknown;
   bool loading = false;
   String? errorMessage;
+  String? preparingTrackId;
 
   Future<void> load() async {
     if (loading) return;
@@ -47,6 +50,31 @@ final class LocalMusicController extends ChangeNotifier {
     }
   }
 
-  List<PlaybackSource> playbackSources() =>
-      tracks.map((item) => item.toPlaybackSource()).toList(growable: false);
+  Future<PlaybackSource> preparePlayback(LocalMusicTrack item) async {
+    if (preparingTrackId != null) {
+      throw StateError('Ein lokaler Titel wird bereits vorbereitet.');
+    }
+    preparingTrackId = item.track.id;
+    notifyListeners();
+    try {
+      final path = await _channel.invokeMethod<String>('prepareAudio', {
+        'contentUri': item.contentUri.toString(),
+        'mediaId': item.track.id.substring('local:'.length),
+      });
+      if (path == null || path.isEmpty) {
+        throw PlatformException(
+          code: 'PREPARE_FAILED',
+          message: 'Lokaler Titel konnte nicht vorbereitet werden.',
+        );
+      }
+      return PlaybackSource(
+        track: item.track,
+        uri: File(path).uri,
+        headers: const {},
+      );
+    } finally {
+      preparingTrackId = null;
+      notifyListeners();
+    }
+  }
 }

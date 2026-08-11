@@ -149,7 +149,7 @@ f6005a3 Prevent Brain sync timeouts
 Current Android release:
 
 ```text
-Version 0.10.0 (Build 12)
+Version 0.10.1 (Build 13)
 frontend/build/app/outputs/flutter-apk/app-release.apk
 ```
 
@@ -179,6 +179,7 @@ Implemented and pushed during this feature period:
 - Player position events no longer rebuild the complete `MaterialApp`; only Mini-/Fullplayer update. This targets the Android ANR seen during local playback.
 - New gold/black Monopol Musix Vault artwork is used as launcher and in-app branding.
 - Android background playback uses an `audio_service` foreground MediaSession while `media_kit` remains the only playback engine.
+- Direct `content://` playback was removed after device crashes. A selected MediaStore title is now copied on Android's background executor into private app cache using an atomic `.part` rename, then opened by `media_kit` as a normal `file://` source. Local queues are intentionally single-track until stable lazy preparation is designed.
 - The Android notification and lock screen expose metadata, play/pause, previous, next, seek, repeat, and shuffle state. Bluetooth/headset media buttons call the same controller.
 - Audio focus pauses for calls/interruptions and ducks/restores volume for transient ducking events.
 - Kotlin incremental compilation is disabled because the project is on `X:` while the Windows Pub cache is on `C:`; otherwise plugin builds fail across drive roots.
@@ -186,13 +187,13 @@ Implemented and pushed during this feature period:
 Current Android release:
 
 ```text
-Version 0.10.0 (Build 12)
+Version 0.10.1 (Build 13)
 frontend/build/app/outputs/flutter-apk/app-release.apk
 ```
 
 Next device checks:
 
-1. Install Build 12 and allow Android's notification permission.
+1. Install Build 13 and allow Android's notification permission.
 2. Start Vault, downloaded, and MediaStore tracks; lock the screen and confirm playback continues with correct metadata.
 3. Test notification, lock-screen, Bluetooth, and headset play/pause plus previous/next controls.
 4. Trigger an interruption such as a call/navigation prompt and verify pause/duck plus sensible restoration.

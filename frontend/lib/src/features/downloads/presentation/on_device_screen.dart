@@ -182,7 +182,11 @@ final class _OnDeviceScreenState extends State<OnDeviceScreen> {
           return _LocalTrackTile(
             item: item,
             selected: widget.audioController.currentTrack?.id == item.track.id,
-            onPlay: () => _playLocal(index),
+            preparing:
+                widget.localMusicController.preparingTrackId == item.track.id,
+            onPlay: widget.localMusicController.preparingTrackId == null
+                ? () => _playLocal(index)
+                : null,
           );
         },
       ),
@@ -196,10 +200,9 @@ final class _OnDeviceScreenState extends State<OnDeviceScreen> {
 
   Future<void> _playLocal(int index) async {
     try {
-      await widget.audioController.playQueue(
-        widget.localMusicController.playbackSources(),
-        index,
-      );
+      final item = widget.localMusicController.tracks[index];
+      final source = await widget.localMusicController.preparePlayback(item);
+      await widget.audioController.playQueue([source], 0);
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -236,11 +239,13 @@ final class _LocalTrackTile extends StatelessWidget {
   const _LocalTrackTile({
     required this.item,
     required this.selected,
+    required this.preparing,
     required this.onPlay,
   });
   final LocalMusicTrack item;
   final bool selected;
-  final VoidCallback onPlay;
+  final bool preparing;
+  final VoidCallback? onPlay;
 
   @override
   Widget build(BuildContext context) => ListTile(
@@ -251,7 +256,12 @@ final class _LocalTrackTile extends StatelessWidget {
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
     ),
-    trailing: const Chip(label: Text('Lokal')),
+    trailing: preparing
+        ? const SizedBox.square(
+            dimension: 24,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+        : const Chip(label: Text('Lokal')),
     selected: selected,
     onTap: onPlay,
   );

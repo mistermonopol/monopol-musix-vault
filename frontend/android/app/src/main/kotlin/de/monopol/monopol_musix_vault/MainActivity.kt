@@ -6,11 +6,13 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
+import android.net.Uri
 
 import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import java.io.File
 import java.util.concurrent.Executors
 
 class MainActivity : AudioServiceActivity() {
@@ -40,10 +42,14 @@ class MainActivity : AudioServiceActivity() {
     }
 
     private fun handleLocalMusicCall(call: MethodCall, result: MethodChannel.Result) {
-        if (call.method != "listAudio") {
-            result.notImplemented()
-            return
+        when (call.method) {
+            "listAudio" -> requestAudioList(result)
+            "prepareAudio" -> prepareAudioAsync(call, result)
+            else -> result.notImplemented()
         }
+    }
+
+    private fun requestAudioList(result: MethodChannel.Result) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
             queryAudioAsync(result)
             return
@@ -89,6 +95,48 @@ class MainActivity : AudioServiceActivity() {
         mediaStoreExecutor.shutdownNow()
         pendingResult = null
         super.onDestroy()
+    }
+
+    private fun prepareAudioAsync(call: MethodCall, result: MethodChannel.Result) {
+        val contentUri = call.argument<String>("contentUri")?.let(Uri::parse)
+        val mediaId = call.argument<String>("mediaId")
+        if (
+            contentUri?.scheme != "content" ||
+            contentUri.authority != "media" ||
+            mediaId == null ||
+            !mediaId.matches(Regex("[0-9]+"))
+        ) {
+            result.error("INVALID_MEDIA", "Ungültiger lokaler Titel.", null)
+            return
+        }
+        mediaStoreExecutor.execute {
+            val directory = File(cacheDir, "local-playback").apply { mkdirs() }
+            val target = File(directory, "local-$mediaId.audio")
+            val temporary = File(directory, "local-$mediaId.audio.part")
+            try {
+                if (temporary.exists()) temporary.delete()
+                val copied = contentResolver.openInputStream(contentUri)?.use { input ->
+                    temporary.outputStream().buffered().use { output -> input.copyTo(output) }
+                } ?: throw IllegalStateException("Audio stream unavailable")
+                if (copied <= 0L) throw IllegalStateException("Empty audio stream")
+                if (target.exists() && !target.delete()) {
+                    throw IllegalStateException("Old cache file cannot be replaced")
+                }
+                if (!temporary.renameTo(target)) {
+                    throw IllegalStateException("Audio cache cannot be completed")
+                }
+                runOnUiThread { result.success(target.absolutePath) }
+            } catch (error: Exception) {
+                temporary.delete()
+                runOnUiThread {
+                    result.error(
+                        "PREPARE_FAILED",
+                        "Lokaler Titel konnte nicht vorbereitet werden.",
+                        null,
+                    )
+                }
+            }
+        }
     }
 
     private fun queryAudioAsync(result: MethodChannel.Result) {

@@ -1,5 +1,4 @@
 import '../../library/domain/catalog_track.dart';
-import '../../player/domain/playback_source.dart';
 
 final class LocalMusicTrack {
   const LocalMusicTrack({required this.track, required this.contentUri});
@@ -31,7 +30,4 @@ final class LocalMusicTrack {
 
   final CatalogTrack track;
   final Uri contentUri;
-
-  PlaybackSource toPlaybackSource() =>
-      PlaybackSource(track: track, uri: contentUri, headers: const {});
 }
