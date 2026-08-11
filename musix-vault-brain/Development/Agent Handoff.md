@@ -50,6 +50,7 @@ Backend and clients share no source code. They communicate through the HTTP API.
 20. Android MediaStore music library, separate Downloads/Local Music tabs, and runtime audio permissions
 21. Full-screen title player with large artwork, shuffle, and repeat off/all/one
 22. Custom Monopol Musix Vault launcher icon and in-app branding
+23. Android foreground media service with notification, lock-screen metadata, Bluetooth/headset controls, and audio-focus handling
 
 ## Current repository state
 
@@ -148,7 +149,7 @@ f6005a3 Prevent Brain sync timeouts
 Current Android release:
 
 ```text
-Version 0.9.0 (Build 11)
+Version 0.10.0 (Build 12)
 frontend/build/app/outputs/flutter-apk/app-release.apk
 ```
 
@@ -177,21 +178,27 @@ Implemented and pushed during this feature period:
 - Shuffle title mapping follows media_kit's actual shuffled media order instead of the original queue order.
 - Player position events no longer rebuild the complete `MaterialApp`; only Mini-/Fullplayer update. This targets the Android ANR seen during local playback.
 - New gold/black Monopol Musix Vault artwork is used as launcher and in-app branding.
+- Android background playback uses an `audio_service` foreground MediaSession while `media_kit` remains the only playback engine.
+- The Android notification and lock screen expose metadata, play/pause, previous, next, seek, repeat, and shuffle state. Bluetooth/headset media buttons call the same controller.
+- Audio focus pauses for calls/interruptions and ducks/restores volume for transient ducking events.
+- Kotlin incremental compilation is disabled because the project is on `X:` while the Windows Pub cache is on `C:`; otherwise plugin builds fail across drive roots.
 
 Current Android release:
 
 ```text
-Version 0.9.0 (Build 11)
+Version 0.10.0 (Build 12)
 frontend/build/app/outputs/flutter-apk/app-release.apk
 ```
 
 Next device checks:
 
-1. Install Build 11 cleanly or update the existing installation and confirm the launcher icon refreshes.
-2. Open a large local MediaStore library, play several local tracks for at least five minutes, and confirm no Android ANR dialog appears.
-3. Enable shuffle, press next repeatedly, and confirm cover/title always match the audible track.
-4. Verify Vault downloads remain playable in airplane mode and are still distinct from MediaStore tracks.
-5. If an ANR remains, capture `adb logcat` and Android's ANR trace; MediaStore query and global Flutter rebuild causes have already been removed.
+1. Install Build 12 and allow Android's notification permission.
+2. Start Vault, downloaded, and MediaStore tracks; lock the screen and confirm playback continues with correct metadata.
+3. Test notification, lock-screen, Bluetooth, and headset play/pause plus previous/next controls.
+4. Trigger an interruption such as a call/navigation prompt and verify pause/duck plus sensible restoration.
+5. Open a large local MediaStore library, play for at least five minutes, and confirm no Android ANR dialog appears.
+6. Enable shuffle, press next repeatedly, and confirm cover/title always match the audible track.
+7. If an ANR remains, capture `adb logcat` and Android's ANR trace.
 
 Important commits:
 

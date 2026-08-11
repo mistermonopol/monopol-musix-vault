@@ -91,20 +91,29 @@ final class AudioPlayerController extends ChangeNotifier {
   }
 
   Future<void> playOrPause() => _player.playOrPause();
+  Future<void> play() => _player.play();
+  Future<void> pause() => _player.pause();
   Future<void> seek(Duration position) => _player.seek(position);
+  Future<void> setVolume(double volume) => _player.setVolume(volume * 100);
 
-  Future<void> toggleShuffle() async {
-    _shuffleEnabled = !_shuffleEnabled;
-    await _player.setShuffle(_shuffleEnabled);
+  Future<void> toggleShuffle() => setShuffleEnabled(!_shuffleEnabled);
+
+  Future<void> setShuffleEnabled(bool enabled) async {
+    if (_shuffleEnabled == enabled) return;
+    _shuffleEnabled = enabled;
+    await _player.setShuffle(enabled);
     notifyListeners();
   }
 
-  Future<void> cycleRepeatMode() async {
-    _repeatMode = switch (_repeatMode) {
-      PlaybackRepeatMode.off => PlaybackRepeatMode.all,
-      PlaybackRepeatMode.all => PlaybackRepeatMode.one,
-      PlaybackRepeatMode.one => PlaybackRepeatMode.off,
-    };
+  Future<void> cycleRepeatMode() => setRepeatMode(switch (_repeatMode) {
+    PlaybackRepeatMode.off => PlaybackRepeatMode.all,
+    PlaybackRepeatMode.all => PlaybackRepeatMode.one,
+    PlaybackRepeatMode.one => PlaybackRepeatMode.off,
+  });
+
+  Future<void> setRepeatMode(PlaybackRepeatMode mode) async {
+    if (_repeatMode == mode) return;
+    _repeatMode = mode;
     await _player.setPlaylistMode(switch (_repeatMode) {
       PlaybackRepeatMode.off => PlaylistMode.none,
       PlaybackRepeatMode.all => PlaylistMode.loop,

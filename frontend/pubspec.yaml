@@ -1,12 +1,14 @@
 name: monopol_musix_vault
 description: "Private mobile and desktop client for Monopol Musix Vault"
 publish_to: 'none'
-version: 0.9.0+11
+version: 0.10.0+12
 
 environment:
   sdk: ^3.12.2
 
 dependencies:
+  audio_service: ^0.18.18
+  audio_session: ^0.2.4
   flutter:
     sdk: flutter
   # 11.x requires Android API 37, which Flutter's current AGP template does not support yet.

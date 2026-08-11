@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../core/api/api_client.dart';
@@ -8,6 +10,7 @@ import '../features/auth/presentation/login_screen.dart';
 import '../features/downloads/application/download_controller.dart';
 import '../features/local_music/application/local_music_controller.dart';
 import 'home_shell.dart';
+import '../features/player/application/media_session_handler.dart';
 import '../features/player/presentation/audio_player_controller.dart';
 
 final class MusixVaultApp extends StatefulWidget {
@@ -16,20 +19,26 @@ final class MusixVaultApp extends StatefulWidget {
     required this.audioController,
     required this.downloadController,
     required this.localMusicController,
+    required this.mediaSession,
     super.key,
   });
 
-  factory MusixVaultApp.bootstrap() {
+  static Future<MusixVaultApp> bootstrap({
+    required VaultMediaSessionHandler mediaSession,
+  }) async {
     final config = AppConfig.fromEnvironment();
     final authController = AuthController(
       api: ApiClient(baseUrl: config.apiBaseUrl),
       store: SecureSessionStore(),
     );
+    final audioController = AudioPlayerController();
+    await mediaSession.attach(audioController);
     return MusixVaultApp(
       authController: authController,
-      audioController: AudioPlayerController(),
+      audioController: audioController,
       downloadController: DownloadController(authController: authController),
       localMusicController: LocalMusicController(),
+      mediaSession: mediaSession,
     );
   }
 
@@ -37,6 +46,7 @@ final class MusixVaultApp extends StatefulWidget {
   final AudioPlayerController audioController;
   final DownloadController downloadController;
   final LocalMusicController localMusicController;
+  final VaultMediaSessionHandler mediaSession;
 
   @override
   State<MusixVaultApp> createState() => _MusixVaultAppState();
@@ -57,6 +67,7 @@ final class _MusixVaultAppState extends State<MusixVaultApp> {
     widget.audioController.dispose();
     widget.downloadController.dispose();
     widget.localMusicController.dispose();
+    unawaited(widget.mediaSession.close());
     super.dispose();
   }
 
